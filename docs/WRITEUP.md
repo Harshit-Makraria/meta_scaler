@@ -54,7 +54,7 @@ I plan to ship an "Advisor Mode" where a real founder pastes their actual MRR/bu
 
 ## Links
 
-- **Live demo (HF Space)**: *see README*
+- **Live demo (HF Space)**: https://huggingface.co/spaces/Harshit-Makraria/the-pivot
 - **Code**: https://github.com/Harshit-Makraria/meta_scaler
 - **Training notebook**: [`training/train_colab.ipynb`](../training/train_colab.ipynb)
 - **Plots**: [`docs/plots/`](plots/)

@@ -10,7 +10,7 @@
 
 | What | Where |
 |------|-------|
-| 🚀 **HF Space (live demo)** | `<PASTE_HF_SPACE_URL_HERE>` |
+| 🚀 **HF Space (live demo)** | [huggingface.co/spaces/Harshit-Makraria/the-pivot](https://huggingface.co/spaces/Harshit-Makraria/the-pivot) |
 | 📓 **Training notebook (Colab)** | [`training/train_colab.ipynb`](training/train_colab.ipynb) — [Open in Colab](https://colab.research.google.com/github/Harshit-Makraria/meta_scaler/blob/main/training/train_colab.ipynb) |
 | 📝 **Writeup** | [`docs/WRITEUP.md`](docs/WRITEUP.md) |
 | 🧩 **OpenEnv manifest** | [`openenv.yaml`](openenv.yaml) |
