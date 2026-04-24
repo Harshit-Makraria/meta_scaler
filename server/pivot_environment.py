@@ -11,7 +11,7 @@ from openenv.core.env_server.interfaces import Environment
 from openenv.core.env_server.types import State
 
 from models import ActionType, PivotAction, PivotObservation
-from server.market import MarketSimulator
+from server.market import MarketSimulator, sample_shock
 from server.signals import SignalGenerator
 from server.founder import FounderAgent
 from server.investor import InvestorAgent
@@ -69,6 +69,9 @@ class ThePivotEnvironment(Environment[PivotAction, PivotObservation, State]):
         self._churn_history: list[float] = []
         self._complaint_history: list[set] = []
         self._months_at_risk: int = 0
+        # Shock tracking
+        self._active_shock: dict | None = None
+        self._shock_rng = random.Random(rng_seed + 77)
 
     # ─── openenv-core required API ────────────────────────────────────────────
 
@@ -104,6 +107,8 @@ class ThePivotEnvironment(Environment[PivotAction, PivotObservation, State]):
         self._churn_history = []
         self._complaint_history = []
         self._months_at_risk = 0
+        self._active_shock = None
+        self._shock_rng = random.Random(effective_seed + 77)
 
         self._state = State(
             episode_id=episode_id or str(uuid4()),
@@ -166,6 +171,11 @@ class ThePivotEnvironment(Environment[PivotAction, PivotObservation, State]):
             self._runway.monthly_revenue *= 0.80
             self._runway.apply_cut_costs(monthly_savings=30_000)
 
+        elif action.action_type == ActionType.SELL:
+            # Acqui-hire: episode ends next step regardless of runway
+            # Reward handled by RewardCalculator._acqui_hire
+            pass
+
         # ── Competitor move ───────────────────────────────────────────
         competitor_play = self._competitor.tick(self._internal_snapshot)
         if self._competitor.market_share_impact > 0:
@@ -184,18 +194,34 @@ class ThePivotEnvironment(Environment[PivotAction, PivotObservation, State]):
         self._true_nps = max(-100, self._true_nps + cfg.nps_drift)
         competitor_event = random.random() < cfg.competitor_activity
 
+        # ── Macro shock events ────────────────────────────────────────
+        current_phase = self._market.get_phase(self._step_num).value
+        self._active_shock = sample_shock(self._step_num, current_phase, self._shock_rng)
+        if self._active_shock:
+            ev = self._active_shock
+            self._runway.monthly_revenue *= ev.get("revenue_multiplier", 1.0)
+            self._runway.burn_rate *= ev.get("burn_multiplier", 1.0)
+            self._true_nps = max(-100, self._true_nps + ev.get("nps_delta", 0))
+            self._competitor.strength = min(1.0,
+                self._competitor.strength + ev.get("competitor_strength_boost", 0.0))
+            if ev.get("morale_hit"):
+                self._founder._decay_level = min(1.0,
+                    self._founder._decay_level + ev["morale_hit"])
+
         self._signals.tick()
         self._step_num += 1
         self._state.step_count = self._step_num
 
         survived_episode = self._step_num >= MAX_STEPS
         ran_out_of_money = self._runway.runway_remaining <= 0
-        done = ran_out_of_money or survived_episode
+        acqui_hired = action.action_type == ActionType.SELL
+        done = ran_out_of_money or survived_episode or acqui_hired
 
         self._internal_snapshot = self._build_snapshot(competitor_event)
 
         # ── Compute reward ────────────────────────────────────────────
         optimal_pivot_start = self._market.get_optimal_pivot_window()[0]
+        board_pressure = self._step_num >= 40 and self._runway.runway_remaining < 6
         episode_data = {
             "step": self._step_num,
             "done": done,
@@ -204,6 +230,8 @@ class ThePivotEnvironment(Environment[PivotAction, PivotObservation, State]):
             "investor_milestone_hit": self._last_milestone_hit,
             "founder_decay": self._founder.decay_level,
             "founder_advice": prev_snapshot.get("founder_advice", ""),
+            "shock_active": self._active_shock is not None,
+            "board_pressure": board_pressure,
         }
         reward, breakdown = self._reward_calc.compute(
             state=prev_snapshot,
@@ -377,6 +405,10 @@ class ThePivotEnvironment(Environment[PivotAction, PivotObservation, State]):
         )
         trends = self._compute_trends(sig["noisy_churn"], sig["user_complaints"])
 
+        board_pressure = self._step_num >= 40 and self._runway.runway_remaining < 6
+        shock_name = self._active_shock["name"] if self._active_shock else ""
+        shock_msg  = self._active_shock.get("message", "") if self._active_shock else ""
+
         return PivotObservation(
             done=done,
             reward=reward,
@@ -400,6 +432,9 @@ class ThePivotEnvironment(Environment[PivotAction, PivotObservation, State]):
             churn_trend=trends["churn_trend"],
             complaint_shift_detected=trends["complaint_shift_detected"],
             months_at_risk=trends["months_at_risk"],
+            active_shock=shock_name,
+            shock_message=shock_msg,
+            board_pressure=board_pressure,
             step=self._step_num,
             max_steps=MAX_STEPS,
         )

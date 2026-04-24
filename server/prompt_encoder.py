@@ -111,22 +111,57 @@ def encode_observation(obs: PivotObservation) -> str:
         lines.append("  ⚠ WARNING: A pivot right now may leave you with very little runway to recover.")
     lines.append("")
 
+    # ── Shock event alert ─────────────────────────────────────────────────────
+    if obs.shock_message:
+        lines.append(f"🚨 MACRO EVENT THIS MONTH: {obs.shock_message}")
+        lines.append("")
+
+    # ── Board pressure ────────────────────────────────────────────────────────
+    if obs.board_pressure:
+        lines.append("🏛 BOARD ULTIMATUM: You are past month 40 with under 6 months runway.")
+        lines.append("   The board demands decisive action — PIVOT, CUT_COSTS, FUNDRAISE, or SELL.")
+        lines.append("   Blindly EXECUTEing will be seen as negligence.")
+        lines.append("")
+
     # ── Decision prompt ───────────────────────────────────────────────────────
     lines.append("Based on this situation, what is your strategic decision?")
-    lines.append("Choose: EXECUTE | PIVOT | RESEARCH | FUNDRAISE | HIRE | CUT_COSTS")
+    lines.append("Choose: EXECUTE | PIVOT | RESEARCH | FUNDRAISE | HIRE | CUT_COSTS | SELL")
 
     return "\n".join(lines)
 
 
-def encode_to_messages(obs: PivotObservation) -> list[dict]:
+def encode_to_messages(obs: PivotObservation, history: list[dict] | None = None) -> list[dict]:
     """
     Returns conversation in HuggingFace chat format.
     Used by the training loop: tokenizer.apply_chat_template(messages, ...)
+
+    Args:
+        obs: current observation
+        history: optional list of last N steps — each dict has keys:
+                 step, action, reward, runway, shock (optional)
+                 Gives the agent multi-turn memory of its own recent moves.
     """
-    return [
-        {"role": "system", "content": SYSTEM_PROMPT},
-        {"role": "user", "content": encode_observation(obs)},
-    ]
+    messages = [{"role": "system", "content": SYSTEM_PROMPT}]
+
+    # ── Multi-turn memory (last 3 steps) ──────────────────────────────────────
+    if history:
+        for h in history[-3:]:
+            reward_str = f"{h.get('reward', 0):+.1f}"
+            shock_str = f" [SHOCK: {h['shock']}]" if h.get("shock") else ""
+            messages.append({
+                "role": "user",
+                "content": f"[Month {h['step']+1}] Your previous situation. {shock_str}"
+            })
+            messages.append({
+                "role": "assistant",
+                "content": (
+                    f"{h['action']} → reward {reward_str}, "
+                    f"runway now {h['runway']}mo"
+                )
+            })
+
+    messages.append({"role": "user", "content": encode_observation(obs)})
+    return messages
 
 
 # ── Label helpers ─────────────────────────────────────────────────────────────

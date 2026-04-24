@@ -37,6 +37,18 @@ class RewardCalculator:
         awareness = self._founder_awareness(action_type, state, next_state, episode_data)
         breakdown["founder_awareness"] = awareness
 
+        # 6. Board pressure: extra penalty for inaction when board is watching
+        board = self._board_pressure(action_type, state)
+        breakdown["board_pressure"] = board
+
+        # 7. Acqui-hire: graceful exit reward/penalty
+        acqui = self._acqui_hire(action_type, state)
+        breakdown["acqui_hire"] = acqui
+
+        # 8. Shock survival bonus: small bonus for surviving a shock step
+        shock_bonus = self._shock_survival(next_state, episode_data)
+        breakdown["shock_survival"] = shock_bonus
+
         total = sum(breakdown.values())
         breakdown["total"] = total
         return total, breakdown
@@ -118,4 +130,42 @@ class RewardCalculator:
 
         if rev_improved and runway_ok:
             return 30.0   # correctly overrode panicking founder
+        return 0.0
+
+    def _board_pressure(self, action_type: ActionType, state: dict) -> float:
+        """
+        After step 40, if runway < 6 months, the board is watching.
+        Reward decisive action (PIVOT, CUT_COSTS, FUNDRAISE, SELL).
+        Penalise blindly EXECUTEing with bad metrics.
+        """
+        step = state.get("step", 0)
+        runway = state.get("runway_remaining", 18)
+        if step < 40 or runway >= 6:
+            return 0.0
+        decisive = {ActionType.PIVOT, ActionType.CUT_COSTS, ActionType.FUNDRAISE, ActionType.SELL}
+        if action_type in decisive:
+            return 10.0   # board happy: you're taking action
+        return -15.0      # board ultimatum penalty for blind EXECUTE in crisis
+
+    def _acqui_hire(self, action_type: ActionType, state: dict) -> float:
+        """
+        SELL action: graceful acqui-hire.
+        Rewards survival-exit when truly out of options (runway < 3).
+        Punishes selling too early.
+        """
+        if action_type != ActionType.SELL:
+            return 0.0
+        runway = state.get("runway_remaining", 18)
+        if runway <= 2:
+            return 50.0   # good call — sold before dying
+        elif runway <= 5:
+            return 10.0   # marginal, but defensible
+        return -40.0      # sold too early — wasted upside
+
+    def _shock_survival(self, next_state: dict, episode_data: dict) -> float:
+        """Small bonus for surviving a macro shock event without dying."""
+        if not episode_data.get("shock_active"):
+            return 0.0
+        if next_state.get("runway_remaining", 0) > 0:
+            return 5.0   # survived the shock — resilience bonus
         return 0.0

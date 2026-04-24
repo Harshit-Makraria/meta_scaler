@@ -16,6 +16,7 @@ class ActionType(str, Enum):
     FUNDRAISE = "FUNDRAISE"   # Go to investor for money
     HIRE = "HIRE"             # Add headcount — raises burn, lowers future pivot cost
     CUT_COSTS = "CUT_COSTS"   # Cut spend — lowers burn, slows growth
+    SELL = "SELL"             # Acqui-hire escape: graceful exit if runway < 3mo
 
 
 class PivotAction(Action):
@@ -60,6 +61,13 @@ class PivotObservation(Observation):
     churn_trend: str = Field(default="stable", description="'stable' / 'rising' / 'spiking'")
     complaint_shift_detected: bool = Field(default=False, description="Complaint types changed character vs last month")
     months_at_risk: int = Field(default=0, description="Consecutive months where runway < 6")
+
+    # Shock events (macro surprises — funding winter, viral moment, key hire quits, etc.)
+    active_shock: str = Field(default="", description="Name of macro shock event active this step, or empty string")
+    shock_message: str = Field(default="", description="Human-readable description of the shock event")
+
+    # Board pressure (kicks in after step 40 when metrics are bad)
+    board_pressure: bool = Field(default=False, description="True when board is applying ultimatum pressure (step>40, runway<6)")
 
     # Episode metadata
     step: int = Field(default=0, description="Current month number (0-indexed)")

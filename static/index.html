@@ -781,5 +781,128 @@ function renderCompareResults(results) {
 initCharts();
 enableActions(false);
 </script>
+
+<!-- ADVISOR MODE -->
+<div class="grid-full" style="margin-bottom:40px">
+  <div class="card card-accent">
+    <div class="card-title">🧠 Advisor Mode — Paste Your Real Metrics</div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:16px">Running a real startup? Enter your numbers and get a strategic recommendation.</div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px">
+      <div><label style="font-size:10px;color:var(--muted);display:block;margin-bottom:4px">MRR (USD/mo)</label><input id="adv-mrr" type="number" value="45000" style="width:100%;background:#111;border:1px solid #333;color:#fff;padding:8px;border-radius:6px;font-size:13px"></div>
+      <div><label style="font-size:10px;color:var(--muted);display:block;margin-bottom:4px">Monthly Burn (USD)</label><input id="adv-burn" type="number" value="120000" style="width:100%;background:#111;border:1px solid #333;color:#fff;padding:8px;border-radius:6px;font-size:13px"></div>
+      <div><label style="font-size:10px;color:var(--muted);display:block;margin-bottom:4px">Runway (months)</label><input id="adv-runway" type="number" value="18" style="width:100%;background:#111;border:1px solid #333;color:#fff;padding:8px;border-radius:6px;font-size:13px"></div>
+      <div><label style="font-size:10px;color:var(--muted);display:block;margin-bottom:4px">NPS Score</label><input id="adv-nps" type="number" value="40" style="width:100%;background:#111;border:1px solid #333;color:#fff;padding:8px;border-radius:6px;font-size:13px"></div>
+      <div><label style="font-size:10px;color:var(--muted);display:block;margin-bottom:4px">Monthly Churn (0–1)</label><input id="adv-churn" type="number" value="0.08" step="0.01" style="width:100%;background:#111;border:1px solid #333;color:#fff;padding:8px;border-radius:6px;font-size:13px"></div>
+      <div><label style="font-size:10px;color:var(--muted);display:block;margin-bottom:4px">Company Month #</label><input id="adv-step" type="number" value="12" style="width:100%;background:#111;border:1px solid #333;color:#fff;padding:8px;border-radius:6px;font-size:13px"></div>
+    </div>
+    <button class="ctrl-btn primary" onclick="runAdvisor()" style="padding:10px 24px">Get Recommendation</button>
+    <div id="advisor-result" style="display:none;margin-top:20px;padding:16px;background:#0a0a0a;border-radius:8px;border-left:3px solid var(--accent)">
+      <div style="font-size:18px;font-weight:700;font-family:'Space Mono',monospace;color:var(--accent);margin-bottom:10px" id="advisor-action">—</div>
+      <div style="font-size:13px;color:#aaa;line-height:1.6" id="advisor-reasoning">—</div>
+    </div>
+  </div>
+</div>
+
+<!-- COUNTERFACTUAL REPLAY -->
+<div class="grid-full" style="margin-bottom:40px">
+  <div class="card card-accent">
+    <div class="card-title">🔀 Counterfactual — "What if I had PIVOTed at month X?"</div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:16px">Simulate an alternate timeline where PIVOT happens at a specific month.</div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px">
+      <div><label style="font-size:10px;color:var(--muted);display:block;margin-bottom:4px">Scenario</label>
+        <select id="cf-scenario" class="ctrl-select" style="width:100%;font-size:12px;padding:8px">
+          <option value="b2c_saas">B2C SaaS</option><option value="enterprise_saas">Enterprise SaaS</option>
+          <option value="fintech">Fintech</option><option value="marketplace">Marketplace</option><option value="consumer_app">Consumer App</option>
+        </select></div>
+      <div><label style="font-size:10px;color:var(--muted);display:block;margin-bottom:4px">Pivot at Month #</label><input id="cf-step" type="number" value="35" min="1" max="58" style="width:100%;background:#111;border:1px solid #333;color:#fff;padding:8px;border-radius:6px;font-size:13px"></div>
+      <div><label style="font-size:10px;color:var(--muted);display:block;margin-bottom:4px">Simulate N months ahead</label><input id="cf-ahead" type="number" value="20" min="5" max="40" style="width:100%;background:#111;border:1px solid #333;color:#fff;padding:8px;border-radius:6px;font-size:13px"></div>
+    </div>
+    <button class="ctrl-btn primary" id="cf-btn" onclick="runCounterfactual()" style="padding:10px 24px">Simulate Alternate Timeline</button>
+    <div id="cf-result" style="display:none;margin-top:20px">
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px" id="cf-summary-cards"></div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:8px">Trajectory after pivot:</div>
+      <div style="overflow-x:auto"><table style="width:100%;font-size:11px;border-collapse:collapse">
+        <thead><tr style="color:var(--muted)"><th style="text-align:left;padding:6px">Month</th><th style="text-align:left;padding:6px">Action</th><th style="text-align:right;padding:6px">Reward</th><th style="text-align:right;padding:6px">Runway</th><th style="text-align:right;padding:6px">Revenue</th></tr></thead>
+        <tbody id="cf-tbody"></tbody>
+      </table></div>
+    </div>
+  </div>
+</div>
+
+<!-- LEADERBOARD -->
+<div class="grid-full" style="margin-bottom:60px">
+  <div class="card card-accent">
+    <div class="card-title">🏆 Leaderboard</div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:16px">Best episodes. Play an episode then submit your score.</div>
+    <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap">
+      <input id="lb-name" placeholder="Your name / team" style="background:#111;border:1px solid #333;color:#fff;padding:8px 12px;border-radius:6px;font-size:12px;min-width:160px">
+      <button class="ctrl-btn primary" onclick="submitScore()" style="padding:8px 20px">Submit Score</button>
+      <button class="ctrl-btn" onclick="loadLeaderboard()" style="padding:8px 20px">Refresh</button>
+    </div>
+    <div id="lb-status" style="font-size:11px;color:var(--muted);margin-bottom:12px">Click Refresh to load scores.</div>
+    <table style="width:100%;font-size:12px;border-collapse:collapse">
+      <thead><tr style="color:var(--muted);border-bottom:1px solid #222">
+        <th style="text-align:left;padding:8px">#</th><th style="text-align:left;padding:8px">Name</th><th style="text-align:left;padding:8px">Scenario</th>
+        <th style="text-align:right;padding:8px">Reward</th><th style="text-align:right;padding:8px">Survived</th><th style="text-align:right;padding:8px">Pivot</th>
+      </tr></thead>
+      <tbody id="lb-tbody"></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+async function runAdvisor() {
+  const body = { mrr: +document.getElementById('adv-mrr').value, burn: +document.getElementById('adv-burn').value, runway: +document.getElementById('adv-runway').value, nps: +document.getElementById('adv-nps').value, churn: +document.getElementById('adv-churn').value, step: +document.getElementById('adv-step').value };
+  const data = await fetch('/advisor', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) }).then(r=>r.json());
+  const colors = { EXECUTE:'#00ff88', PIVOT:'#ffaa00', RESEARCH:'#00aaff', FUNDRAISE:'#aa44ff', HIRE:'#44ffaa', CUT_COSTS:'#ff4444', SELL:'#ff8800' };
+  document.getElementById('advisor-action').textContent = '→ ' + data.recommendation;
+  document.getElementById('advisor-action').style.color = colors[data.recommendation] || '#fff';
+  document.getElementById('advisor-reasoning').textContent = data.reasoning;
+  document.getElementById('advisor-result').style.display = 'block';
+}
+
+async function runCounterfactual() {
+  const btn = document.getElementById('cf-btn');
+  btn.textContent = 'Simulating...'; btn.disabled = true;
+  const body = { scenario: document.getElementById('cf-scenario').value, pivot_at_step: +document.getElementById('cf-step').value, n_steps_ahead: +document.getElementById('cf-ahead').value, seed: 42 };
+  const data = await fetch('/counterfactual', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) }).then(r=>r.json());
+  btn.textContent = 'Simulate Alternate Timeline'; btn.disabled = false;
+  if (data.error) { alert(data.error); return; }
+  const sc = document.getElementById('cf-summary-cards');
+  sc.innerHTML = `
+    <div style="background:#0a0a0a;border:1px solid #222;border-top:2px solid var(--accent);border-radius:8px;padding:14px"><div style="font-size:10px;color:var(--muted)">Total Reward (pivot at m${data.pivot_at_step})</div><div style="font-size:22px;font-weight:700;color:${data.total_reward>=0?'var(--accent)':'var(--danger)'}">${data.total_reward>0?'+':''}${data.total_reward}</div></div>
+    <div style="background:#0a0a0a;border:1px solid #222;border-top:2px solid #00aaff;border-radius:8px;padding:14px"><div style="font-size:10px;color:var(--muted)">Final Runway</div><div style="font-size:22px;font-weight:700;color:#00aaff">${data.final_runway}mo</div></div>
+    <div style="background:#0a0a0a;border:1px solid #222;border-top:2px solid #aaa;border-radius:8px;padding:14px"><div style="font-size:10px;color:var(--muted)">Outcome</div><div style="font-size:18px;font-weight:700">${data.survived?'✅ Survived':'💀 Died'}</div></div>`;
+  const tb = document.getElementById('cf-tbody'); tb.innerHTML='';
+  data.trajectory.forEach(row => {
+    const p = row.action==='PIVOT';
+    tb.innerHTML += `<tr style="border-bottom:1px solid #111;${p?'background:#1a1000':''}"><td style="padding:5px 6px;color:${p?'#ffaa00':'#aaa'}">${row.step}${p?' ⭐':''}</td><td style="padding:5px 6px;font-family:'Space Mono',monospace;color:${p?'#ffaa00':'#666'}">${row.action}</td><td style="padding:5px 6px;text-align:right;color:${row.reward>=0?'var(--accent)':'var(--danger)'}">${(row.reward||0).toFixed(1)}</td><td style="padding:5px 6px;text-align:right;color:#aaa">${row.runway}mo</td><td style="padding:5px 6px;text-align:right;color:#666">$${(row.revenue/1000).toFixed(0)}k</td></tr>`;
+  });
+  document.getElementById('cf-result').style.display='block';
+}
+
+async function loadLeaderboard() {
+  const data = await fetch('/leaderboard').then(r=>r.json());
+  const tb = document.getElementById('lb-tbody'); tb.innerHTML='';
+  if (!data.leaderboard.length) { document.getElementById('lb-status').textContent='No scores yet. Play and submit!'; return; }
+  document.getElementById('lb-status').textContent=`${data.total_entries} total submissions.`;
+  data.leaderboard.forEach((e,i) => {
+    const m=['🥇','🥈','🥉'][i]||(i+1)+'.';
+    tb.innerHTML += `<tr style="border-bottom:1px solid #111"><td style="padding:8px;color:var(--muted)">${m}</td><td style="padding:8px;font-weight:600">${e.name}</td><td style="padding:8px;color:#666;font-size:11px">${e.scenario}</td><td style="padding:8px;text-align:right;font-family:'Space Mono',monospace;color:${e.total_reward>=0?'var(--accent)':'var(--danger)'}">${e.total_reward>0?'+':''}${e.total_reward.toFixed(1)}</td><td style="padding:8px;text-align:right">${e.survived?'✅':'💀'}</td><td style="padding:8px;text-align:right;color:#666">${e.pivot_step!=null?'m'+e.pivot_step:'—'}</td></tr>`;
+  });
+}
+
+async function submitScore() {
+  if (!obs) { alert('Complete an episode first!'); return; }
+  const name = document.getElementById('lb-name').value.trim()||'Anonymous';
+  const scenario = document.getElementById('scenario-select')?.value||'default';
+  const body = { name, scenario, total_reward: Math.round(totalReward*10)/10, survived: (obs.step||0)>=59, pivot_step: pivotStep, n_steps: obs.step||0 };
+  const data = await fetch('/leaderboard/submit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(r=>r.json());
+  document.getElementById('lb-status').textContent=`Submitted! Rank: #${data.rank} of ${data.total}`;
+  loadLeaderboard();
+}
+
+loadLeaderboard();
+</script>
 </body>
 </html>
