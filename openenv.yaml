@@ -3,7 +3,8 @@ version: "0.1.0"
 description: >
   A startup founder simulation RL environment where an LLM agent must detect
   hidden market phase shifts and decide when to pivot strategy — without being told.
-  Features Ghost Protocol founder decay, noisy signal system, and composable rubric rewards.
+  Features a rule-based competitor agent, Ghost Protocol founder decay, noisy signal
+  system, composable rubric rewards, and an adaptive 5-tier curriculum.
 
 environment_class: ThePivotEnvironment
 client_class: ThePivotEnv
@@ -12,17 +13,87 @@ entry_point: server/app.py
 host: 0.0.0.0
 port: 8000
 
+# Framework
+framework: openenv-core
+framework_version: ">=0.2.3"
+python: ">=3.11"
+
+# Action / Observation
 action_space:
   type: discrete
+  n: 6
+  values: [EXECUTE, PIVOT, RESEARCH, FUNDRAISE, HIRE, CUT_COSTS]
   description: "PivotAction with action_type enum and optional params"
 
 observation_space:
   type: structured
-  description: "PivotObservation with 15 fields covering financial, market, founder, and investor state"
+  fields:
+    - monthly_revenue
+    - burn_rate
+    - runway_remaining
+    - cash_on_hand
+    - nps_score
+    - churn_rate
+    - cac
+    - ltv
+    - team_morale
+    - product_velocity
+    - investor_sentiment
+    - funding_stage
+    - step
+    - competitor_play
+    - competitor_strength
+  description: "PivotObservation with 15 fields covering financial, market, founder, investor, and competitor state"
 
+# Episode
 episode:
   max_steps: 60
-  description: "Each step = 1 month. Episode ends at step 60 or when runway hits 0."
+  step_duration: "1 month"
+  description: "Episode ends at step 60 or when runway hits 0"
+
+# Scenarios (difficulty ladder)
+scenarios:
+  - name: b2c_saas
+    difficulty: easy
+    decline_start: 36
+    pivot_window: [39, 46]
+  - name: enterprise_saas
+    difficulty: medium
+    decline_start: 41
+    pivot_window: [44, 50]
+  - name: fintech
+    difficulty: medium-hard
+    decline_start: 33
+    pivot_window: [36, 42]
+  - name: marketplace
+    difficulty: hard
+    decline_start: 29
+    pivot_window: [32, 38]
+  - name: consumer_app
+    difficulty: very-hard
+    decline_start: 23
+    pivot_window: [26, 30]
+
+# Training artifacts
+training:
+  algorithm: GRPO
+  base_model: "Qwen/Qwen2.5-0.5B-Instruct"
+  peft: "LoRA r=8, q_proj+v_proj"
+  quantization: "4-bit nf4"
+  curriculum: "adaptive 5-tier (easy→very-hard)"
+  notebook: training/train_colab.ipynb
+
+# Endpoints
+endpoints:
+  - path: /reset
+  - path: /step
+  - path: /state
+  - path: /ws
+  - path: /schema
+  - path: /ui          # web dashboard
+  - path: /compare     # baseline comparison
+  - path: /prompt      # LLM-facing prompt preview
+  - path: /scenarios   # list scenarios
 
 tags:
   - startup
@@ -31,3 +102,5 @@ tags:
   - long-horizon
   - multi-agent
   - world-modeling
+  - curriculum-learning
+  - competitor-dynamics

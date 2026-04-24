@@ -2,4 +2,7 @@
 wandb/
 __pycache__/
 *.pyc
-plots/
+/plots/
+tea_debug.log
+package-lock.json
+.claude/
