@@ -43,14 +43,15 @@ DIFFICULTY_LADDER: list[str] = [
 
 # Reward threshold to unlock the next tier
 UNLOCK_THRESHOLDS: list[float] = [
-    -30.0,   # advance from tier 1 when mean_reward > -30
-    -10.0,   # advance from tier 2
-    10.0,    # advance from tier 3
-    30.0,    # advance from tier 4 (hardest gate)
+    -50.0,    # advance from tier 1 when mean_reward > -50
+    -120.0,   # advance from tier 2
+    -80.0,    # advance from tier 3
+    -40.0,    # advance from tier 4 (hardest gate)
 ]
 
-WINDOW_SIZE = 20       # episodes to average before deciding to advance
-SURVIVAL_GATE = 0.45   # must survive at least 45% of recent episodes
+WINDOW_SIZE = 20              # episodes to average before deciding to advance
+SURVIVAL_GATE = 0.30          # must survive at least 30% of recent episodes
+MAX_EPISODES_PER_TIER = 40    # force advance after this many episodes even if thresholds not met
 
 
 @dataclass
@@ -67,6 +68,7 @@ class AdaptiveCurriculum:
     _recent_rewards: list[float] = field(default_factory=list, init=False)
     _recent_survived: list[bool] = field(default_factory=list, init=False)
     _tier_history: list[dict] = field(default_factory=list, init=False)
+    _episodes_in_tier: int = field(default=0, init=False)
     _all_scenarios: dict[str, dict] = field(default_factory=dict, init=False)
     _rng: random.Random = field(init=False)
 
@@ -95,14 +97,18 @@ class AdaptiveCurriculum:
         """Call after each training episode."""
         self._recent_rewards.append(mean_reward)
         self._recent_survived.append(survived)
+        self._episodes_in_tier += 1
         if len(self._recent_rewards) > WINDOW_SIZE:
             self._recent_rewards.pop(0)
             self._recent_survived.pop(0)
 
     def should_advance(self) -> bool:
-        """True if we have enough data and performance is good enough to unlock next tier."""
+        """True if performance is good enough OR we've spent too long on this tier."""
         if self.current_tier >= len(DIFFICULTY_LADDER) - 1:
             return False
+        # Force advance if stuck too long on one tier
+        if self._episodes_in_tier >= MAX_EPISODES_PER_TIER:
+            return True
         if len(self._recent_rewards) < WINDOW_SIZE:
             return False
         mean_reward = sum(self._recent_rewards) / len(self._recent_rewards)
@@ -123,6 +129,7 @@ class AdaptiveCurriculum:
         self.current_tier += 1
         self._recent_rewards.clear()
         self._recent_survived.clear()
+        self._episodes_in_tier = 0
         return True
 
     def status(self) -> dict:
