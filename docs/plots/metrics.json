@@ -1,0 +1,9 @@
+{
+  "n_episodes": 150,
+  "mean_reward_last_20": -0.5,
+  "best_reward": 7.0,
+  "survival_rate": 0.2,
+  "final_tier": 2,
+  "model": "Qwen2.5-0.5B-Instruct + LoRA r=8",
+  "algorithm": "GRPO with epsilon-greedy exploration"
+}
