@@ -5,9 +5,15 @@ then adds extra routes for the web UI, scenario support, and prompt endpoint.
 import json
 import os
 import pathlib
+import sys
 from fastapi import Query
-from fastapi.responses import HTMLResponse, FileResponse
+from fastapi.responses import HTMLResponse, FileResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
+
+# Make project root importable (needed when running from Docker WORKDIR)
+_PROJECT_ROOT = pathlib.Path(__file__).parent.parent
+if str(_PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(_PROJECT_ROOT))
 
 from openenv.core.env_server.http_server import create_app
 
@@ -59,6 +65,24 @@ app = create_app(
 
 # ── Serve static files ────────────────────────────────────────────────────
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
+
+
+# ── Root + health ─────────────────────────────────────────────────────────
+@app.get("/", include_in_schema=False)
+def root():
+    """Redirect root to the dashboard."""
+    return RedirectResponse(url="/ui")
+
+
+@app.get("/healthz", include_in_schema=False)
+def healthz():
+    return {"status": "ok", "service": "the-pivot", "env": "ThePivotEnvironment"}
+
+
+@app.get("/debug/routes", include_in_schema=False)
+def debug_routes():
+    """List all registered routes — diagnostic for deployment issues."""
+    return {"routes": sorted([getattr(r, "path", str(r)) for r in app.routes])}
 
 
 # ── UI routes ─────────────────────────────────────────────────────────────
