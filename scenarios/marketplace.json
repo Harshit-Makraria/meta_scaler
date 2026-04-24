@@ -1,0 +1,30 @@
+{
+  "name": "marketplace",
+  "display_name": "Two-Sided Marketplace Squeeze",
+  "description": "A marketplace startup where both sides of the network start fragmenting. Decline comes fast after saturation. Hard difficulty — short window to pivot.",
+  "difficulty": "hard",
+  "initial_state": {
+    "revenue": 38000,
+    "burn_rate": 140000,
+    "runway": 15,
+    "churn_rate": 0.18,
+    "nps": 41
+  },
+  "phases": {
+    "GROWTH":      { "steps": [0, 15], "revenue_growth_rate": 0.10, "churn_drift": 0.003, "nps_drift": -0.5,  "competitor_activity": 0.08 },
+    "SATURATION":  { "steps": [16, 28], "revenue_growth_rate": 0.02, "churn_drift": 0.012, "nps_drift": -2.5,  "competitor_activity": 0.30 },
+    "DECLINE":     { "steps": [29, 60], "revenue_growth_rate": -0.06, "churn_drift": 0.020, "nps_drift": -4.0,  "competitor_activity": 0.65 }
+  },
+  "complaint_distributions": {
+    "GROWTH":     { "missing_feature": 0.45, "slow_performance": 0.30, "ui_confusing": 0.25 },
+    "SATURATION": { "too_expensive": 0.40, "competitor_is_better": 0.35, "missing_feature": 0.25 },
+    "DECLINE":    { "switching_to_X": 0.40, "competitor_is_better": 0.35, "too_expensive": 0.25 }
+  },
+  "optimal_pivot_window": [31, 38],
+  "pivot_outcome": {
+    "churn_reset": -0.10,
+    "nps_drop_on_pivot": -8,
+    "revenue_multiplier_after_pivot": 0.55
+  },
+  "notes": "Hard scenario: shorter runway, faster phase transitions, steeper decline. Agent must act earlier than in b2c_saas."
+}

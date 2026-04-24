@@ -1,0 +1,33 @@
+name: the-pivot
+version: "0.1.0"
+description: >
+  A startup founder simulation RL environment where an LLM agent must detect
+  hidden market phase shifts and decide when to pivot strategy — without being told.
+  Features Ghost Protocol founder decay, noisy signal system, and composable rubric rewards.
+
+environment_class: ThePivotEnvironment
+client_class: ThePivotEnv
+
+entry_point: server/app.py
+host: 0.0.0.0
+port: 8000
+
+action_space:
+  type: discrete
+  description: "PivotAction with action_type enum and optional params"
+
+observation_space:
+  type: structured
+  description: "PivotObservation with 15 fields covering financial, market, founder, and investor state"
+
+episode:
+  max_steps: 60
+  description: "Each step = 1 month. Episode ends at step 60 or when runway hits 0."
+
+tags:
+  - startup
+  - market-drift
+  - ghost-protocol
+  - long-horizon
+  - multi-agent
+  - world-modeling

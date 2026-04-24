@@ -1,0 +1,30 @@
+{
+  "name": "fintech",
+  "display_name": "Fintech Regulatory Squeeze",
+  "description": "A fintech startup that sees good early growth but faces regulatory headwinds and a dominant bank launching a competing product. Medium-hard difficulty.",
+  "difficulty": "medium_hard",
+  "initial_state": {
+    "revenue": 55000,
+    "burn_rate": 150000,
+    "runway": 16,
+    "churn_rate": 0.09,
+    "nps": 47
+  },
+  "phases": {
+    "GROWTH":      { "steps": [0, 18], "revenue_growth_rate": 0.07, "churn_drift": 0.002, "nps_drift": -0.4,  "competitor_activity": 0.06 },
+    "SATURATION":  { "steps": [19, 32], "revenue_growth_rate": 0.01, "churn_drift": 0.009, "nps_drift": -2.2,  "competitor_activity": 0.28 },
+    "DECLINE":     { "steps": [33, 60], "revenue_growth_rate": -0.05, "churn_drift": 0.016, "nps_drift": -3.8,  "competitor_activity": 0.60 }
+  },
+  "complaint_distributions": {
+    "GROWTH":     { "missing_feature": 0.40, "onboarding_too_hard": 0.30, "slow_performance": 0.20, "pricing_unclear": 0.10 },
+    "SATURATION": { "too_expensive": 0.35, "pricing_unclear": 0.25, "competitor_is_better": 0.25, "missing_feature": 0.15 },
+    "DECLINE":    { "competitor_is_better": 0.40, "too_expensive": 0.35, "cant_export_data": 0.15, "switching_to_X": 0.10 }
+  },
+  "optimal_pivot_window": [35, 42],
+  "pivot_outcome": {
+    "churn_reset": -0.06,
+    "nps_drop_on_pivot": -9,
+    "revenue_multiplier_after_pivot": 0.58
+  },
+  "notes": "Regulatory environment means complaints about pricing and onboarding early on. Agent must distinguish regulatory noise from real market shift."
+}

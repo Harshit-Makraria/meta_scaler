@@ -1,0 +1,30 @@
+{
+  "name": "consumer_app",
+  "display_name": "Consumer App Viral Decay",
+  "description": "A viral consumer app riding a trend wave. Growth is explosive but the trend dies fast. Needs a very early pivot. Very hard — agent must act before signals are obvious.",
+  "difficulty": "very_hard",
+  "initial_state": {
+    "revenue": 28000,
+    "burn_rate": 95000,
+    "runway": 14,
+    "churn_rate": 0.22,
+    "nps": 38
+  },
+  "phases": {
+    "GROWTH":      { "steps": [0, 12], "revenue_growth_rate": 0.14, "churn_drift": 0.004, "nps_drift": -0.8,  "competitor_activity": 0.10 },
+    "SATURATION":  { "steps": [13, 22], "revenue_growth_rate": 0.00, "churn_drift": 0.015, "nps_drift": -3.5,  "competitor_activity": 0.40 },
+    "DECLINE":     { "steps": [23, 60], "revenue_growth_rate": -0.07, "churn_drift": 0.022, "nps_drift": -5.0,  "competitor_activity": 0.70 }
+  },
+  "complaint_distributions": {
+    "GROWTH":     { "missing_feature": 0.40, "ui_confusing": 0.35, "slow_performance": 0.25 },
+    "SATURATION": { "ui_confusing": 0.30, "too_expensive": 0.30, "missing_feature": 0.25, "mobile_app_missing": 0.15 },
+    "DECLINE":    { "switching_to_X": 0.45, "competitor_is_better": 0.30, "too_expensive": 0.25 }
+  },
+  "optimal_pivot_window": [24, 30],
+  "pivot_outcome": {
+    "churn_reset": -0.12,
+    "nps_drop_on_pivot": -6,
+    "revenue_multiplier_after_pivot": 0.50
+  },
+  "notes": "Hardest scenario. 14-month initial runway, fast decline after step 23. Agent must read early saturation signals and act quickly."
+}

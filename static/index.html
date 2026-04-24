@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Pivot — Environment Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --accent: #00ff88; --warn: #ffaa00; --danger: #ff4444;
+    --blue: #00aaff; --purple: #aa88ff; --bg: #080808;
+    --card: #0d0d0d; --border: #1a1a1a; --text: #dddddd; --muted: #666;
+  }
+  body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; min-height: 100vh; }
+  .mono { font-family: 'Space Mono', monospace; }
+
+  /* ── Header ── */
+  header {
+    background: #000; border-bottom: 1px solid var(--border);
+    padding: 16px 32px; display: flex; align-items: center; gap: 20px; flex-wrap: wrap;
+  }
+  header h1 { font-family: 'Space Mono', monospace; font-size: 20px; color: #fff; letter-spacing: 2px; }
+  .badge { padding: 4px 12px; border-radius: 4px; font-size: 11px; font-family: 'Space Mono', monospace; }
+  .badge-green { background: #0a1a0a; border: 1px solid var(--accent); color: var(--accent); }
+  .badge-warn  { background: #1a1000; border: 1px solid var(--warn);   color: var(--warn); }
+  .badge-red   { background: #1a0000; border: 1px solid var(--danger); color: var(--danger); }
+  .badge-blue  { background: #000d1a; border: 1px solid var(--blue);   color: var(--blue); }
+  #phase-badge { font-size: 13px; padding: 6px 16px; }
+  #status-msg  { margin-left: auto; font-size: 12px; color: var(--muted); max-width: 300px; }
+
+  /* ── Layout ── */
+  .grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; padding: 20px 32px; }
+  .grid-wide { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; padding: 0 32px 20px; }
+  .grid-full { padding: 0 32px 20px; }
+
+  /* ── Cards ── */
+  .card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 8px;
+    padding: 16px; position: relative;
+  }
+  .card-title {
+    font-family: 'Space Mono', monospace; font-size: 10px; color: var(--muted);
+    letter-spacing: 1px; margin-bottom: 14px; text-transform: uppercase;
+  }
+  .card-accent { border-top: 2px solid var(--accent); }
+  .card-warn   { border-top: 2px solid var(--warn); }
+  .card-danger { border-top: 2px solid var(--danger); }
+  .card-blue   { border-top: 2px solid var(--blue); }
+  .card-purple { border-top: 2px solid var(--purple); }
+
+  /* ── Stat rows ── */
+  .stat-row { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
+  .stat-label { font-size: 12px; color: var(--muted); }
+  .stat-value { font-family: 'Space Mono', monospace; font-size: 14px; color: #fff; }
+  .stat-value.big { font-size: 22px; font-weight: 700; color: var(--accent); }
+  .stat-value.warn { color: var(--warn); }
+  .stat-value.danger { color: var(--danger); }
+  .stat-value.ok { color: var(--accent); }
+
+  /* ── Gauge bar ── */
+  .gauge-wrap { margin: 8px 0; }
+  .gauge-bg { background: #1a1a1a; border-radius: 4px; height: 8px; overflow: hidden; }
+  .gauge-fill { height: 100%; border-radius: 4px; transition: width 0.4s ease, background 0.4s; }
+
+  /* ── Action buttons ── */
+  .actions-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 8px; }
+  .action-btn {
+    background: #111; border: 1px solid #333; border-radius: 6px;
+    color: #ccc; font-family: 'Space Mono', monospace; font-size: 12px;
+    padding: 14px 8px; cursor: pointer; transition: all 0.2s; text-align: center;
+  }
+  .action-btn:hover { border-color: var(--accent); color: var(--accent); background: #0a1a0a; }
+  .action-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+  .action-btn.pivot-btn:hover { border-color: var(--warn); color: var(--warn); background: #1a1000; }
+  .action-btn .cost { display: block; font-size: 9px; color: var(--muted); margin-top: 4px; }
+
+  /* ── Complaint tags ── */
+  .tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .tag {
+    padding: 3px 10px; border-radius: 3px; font-size: 11px;
+    font-family: 'Space Mono', monospace;
+    background: #1a1a1a; border: 1px solid #333; color: #aaa;
+  }
+  .tag.shift { border-color: var(--warn); color: var(--warn); }
+
+  /* ── Episode log ── */
+  #log-list { max-height: 200px; overflow-y: auto; font-size: 12px; }
+  .log-row {
+    display: grid; grid-template-columns: 40px 100px 70px 80px 1fr;
+    gap: 8px; padding: 5px 0; border-bottom: 1px solid #111;
+    font-family: 'Space Mono', monospace; font-size: 11px; color: #888;
+    align-items: center;
+  }
+  .log-row:first-child { color: #ccc; }
+  .log-action { color: var(--accent); }
+  .log-action.pivot { color: var(--warn); }
+  .log-reward.pos { color: var(--accent); }
+  .log-reward.neg { color: var(--danger); }
+
+  /* ── Prompt box ── */
+  #prompt-box {
+    background: #050505; border: 1px solid #1a1a1a; border-left: 3px solid var(--purple);
+    border-radius: 6px; padding: 16px; font-family: 'Space Mono', monospace;
+    font-size: 11px; color: #aaffaa; line-height: 1.8; white-space: pre-wrap;
+    max-height: 300px; overflow-y: auto;
+  }
+
+  /* ── Reset / control bar ── */
+  .ctrl-bar { padding: 0 32px 20px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+  .ctrl-btn {
+    padding: 10px 24px; border-radius: 5px; cursor: pointer; font-size: 13px;
+    font-family: 'Space Mono', monospace; border: none; transition: all 0.2s;
+  }
+  .ctrl-btn.primary { background: var(--accent); color: #000; font-weight: 700; }
+  .ctrl-btn.primary:hover { background: #00cc6a; }
+  .ctrl-btn.secondary { background: transparent; border: 1px solid #333; color: #aaa; }
+  .ctrl-btn.secondary:hover { border-color: #666; color: #fff; }
+  select.ctrl-select {
+    background: #111; border: 1px solid #333; color: #aaa; padding: 10px 14px;
+    border-radius: 5px; font-family: 'Space Mono', monospace; font-size: 12px; cursor: pointer;
+  }
+
+  /* ── Chart ── */
+  .chart-wrap { position: relative; height: 180px; }
+
+  /* ── Alert strip ── */
+  .alert-strip {
+    margin: 0 32px 14px; padding: 10px 16px; border-radius: 6px;
+    font-size: 13px; display: none; align-items: center; gap: 10px;
+  }
+  .alert-strip.show { display: flex; }
+  .alert-strip.warn { background: #1a1000; border: 1px solid var(--warn); color: var(--warn); }
+  .alert-strip.danger { background: #1a0000; border: 1px solid var(--danger); color: var(--danger); }
+  .alert-strip.good { background: #0a1a0a; border: 1px solid var(--accent); color: var(--accent); }
+
+  /* ── Trend pill ── */
+  .trend { padding: 2px 8px; border-radius: 3px; font-size: 10px; font-family: 'Space Mono', monospace; }
+  .trend.growing    { background: #0a1a0a; color: var(--accent); }
+  .trend.plateauing { background: #1a1500; color: var(--warn); }
+  .trend.declining  { background: #1a0000; color: var(--danger); }
+  .trend.stable     { background: #0a1a0a; color: var(--accent); }
+  .trend.rising     { background: #1a1500; color: var(--warn); }
+  .trend.spiking    { background: #1a0000; color: var(--danger); }
+
+  /* ── Scrollbar ── */
+  ::-webkit-scrollbar { width: 4px; } ::-webkit-scrollbar-track { background: #111; }
+  ::-webkit-scrollbar-thumb { background: #333; border-radius: 2px; }
+
+  /* ── Done overlay ── */
+  #done-overlay {
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,.85);
+    align-items: center; justify-content: center; z-index: 100;
+  }
+  #done-overlay.show { display: flex; }
+  .done-box {
+    background: #0d0d0d; border: 1px solid var(--accent); border-radius: 12px;
+    padding: 40px 60px; text-align: center;
+  }
+  .done-box h2 { font-family: 'Space Mono', monospace; font-size: 24px; color: var(--accent); margin-bottom: 12px; }
+  .done-box p { color: #888; margin-bottom: 24px; font-size: 14px; }
+  .done-stats { display: flex; gap: 32px; justify-content: center; margin-bottom: 28px; }
+  .done-stat .label { font-size: 11px; color: var(--muted); margin-bottom: 4px; }
+  .done-stat .val { font-family: 'Space Mono', monospace; font-size: 20px; color: #fff; }
+</style>
+</head>
+<body>
+
+<!-- Done overlay -->
+<div id="done-overlay">
+  <div class="done-box">
+    <h2 id="done-title">EPISODE COMPLETE</h2>
+    <p id="done-msg">The startup has reached the end of the 60-month simulation.</p>
+    <div class="done-stats">
+      <div class="done-stat"><div class="label">Total Reward</div><div class="val" id="done-reward">—</div></div>
+      <div class="done-stat"><div class="label">Survived</div><div class="val" id="done-survived">—</div></div>
+      <div class="done-stat"><div class="label">Pivot at Step</div><div class="val" id="done-pivot">—</div></div>
+      <div class="done-stat"><div class="label">Final Revenue</div><div class="val" id="done-revenue">—</div></div>
+    </div>
+    <button class="ctrl-btn primary" onclick="resetEpisode()">Start New Episode</button>
+  </div>
+</div>
+
+<!-- Header -->
+<header>
+  <span style="font-size:28px">🔄</span>
+  <div>
+    <h1>THE PIVOT</h1>
+    <div style="color:#444;font-family:'Space Mono',monospace;font-size:9px;margin-top:2px">OpenEnv Dashboard · Meta PyTorch Hackathon 2026</div>
+  </div>
+  <span id="phase-badge" class="badge badge-green">GROWTH</span>
+  <div style="display:flex;gap:8px;align-items:center;margin-left:16px">
+    <span class="badge badge-blue mono" id="step-badge">Step 0/60</span>
+    <span class="badge badge-green mono" id="reward-badge">Reward: 0.0</span>
+  </div>
+  <div id="status-msg">Click Reset to start a new episode.</div>
+</header>
+
+<!-- Alert strip -->
+<div class="alert-strip" id="alert-strip"></div>
+
+<!-- Controls -->
+<div class="ctrl-bar" style="margin-top:16px">
+  <button class="ctrl-btn primary" id="reset-btn" onclick="resetEpisode()">⟳ Reset Episode</button>
+  <select class="ctrl-select" id="scenario-select">
+    <option value="default">Default Scenario</option>
+    <option value="b2c_saas">B2C SaaS Collapse (Easy)</option>
+    <option value="marketplace">Marketplace Squeeze (Hard)</option>
+    <option value="enterprise_saas">Enterprise SaaS (Medium)</option>
+    <option value="consumer_app">Consumer App (Very Hard)</option>
+    <option value="fintech">Fintech Regulatory (Medium-Hard)</option>
+  </select>
+  <span style="font-size:12px;color:var(--muted)">Episode <span id="ep-num" class="mono" style="color:#aaa">1</span></span>
+  <span style="font-size:12px;color:var(--muted);margin-left:auto">Total reward this episode: <span id="total-reward" class="mono" style="color:var(--accent)">0.0</span></span>
+</div>
+
+<!-- Row 1: Financial + Market + Founder -->
+<div class="grid">
+
+  <!-- Financial -->
+  <div class="card card-accent">
+    <div class="card-title">💰 Financial State</div>
+    <div class="stat-row">
+      <span class="stat-label">Runway</span>
+      <span class="stat-value big" id="runway">18 mo</span>
+    </div>
+    <div class="gauge-wrap">
+      <div class="gauge-bg"><div class="gauge-fill" id="runway-gauge" style="width:100%;background:var(--accent)"></div></div>
+    </div>
+    <div class="stat-row" style="margin-top:12px">
+      <span class="stat-label">Monthly Revenue</span>
+      <span class="stat-value" id="revenue">$45,000</span>
+    </div>
+    <div class="stat-row">
+      <span class="stat-label">Burn Rate</span>
+      <span class="stat-value" id="burn">$120,000</span>
+    </div>
+    <div class="stat-row">
+      <span class="stat-label">Net Cash Flow</span>
+      <span class="stat-value" id="net-flow">-$75,000/mo</span>
+    </div>
+    <div class="stat-row">
+      <span class="stat-label">3-Month Revenue Δ</span>
+      <span class="stat-value" id="rev-delta">0.0%</span>
+    </div>
+    <div style="margin-top:8px;display:flex;gap:6px;align-items:center">
+      <span class="stat-label">Trend:</span>
+      <span class="trend growing" id="rev-trend">growing</span>
+    </div>
+  </div>
+
+  <!-- Market Signals -->
+  <div class="card card-warn">
+    <div class="card-title">📊 Market Signals (noisy)</div>
+    <div class="stat-row">
+      <span class="stat-label">Churn Rate</span>
+      <span class="stat-value" id="churn">12.0%</span>
+    </div>
+    <div class="gauge-wrap">
+      <div class="gauge-bg"><div class="gauge-fill" id="churn-gauge" style="width:12%;background:var(--accent)"></div></div>
+    </div>
+    <div style="display:flex;gap:6px;align-items:center;margin-bottom:10px">
+      <span class="stat-label">Trend:</span>
+      <span class="trend stable" id="churn-trend">stable</span>
+    </div>
+    <div class="stat-row">
+      <span class="stat-label">NPS Score</span>
+      <span class="stat-value" id="nps">52</span>
+    </div>
+    <div class="gauge-wrap">
+      <div class="gauge-bg"><div class="gauge-fill" id="nps-gauge" style="width:76%;background:var(--accent)"></div></div>
+    </div>
+    <div class="stat-row" style="margin-top:10px">
+      <span class="stat-label">Competitor Event</span>
+      <span class="stat-value" id="competitor">—</span>
+    </div>
+    <div class="stat-row">
+      <span class="stat-label">Rival Strategy</span>
+      <span class="stat-value" id="comp-play" style="color:var(--warn)">dormant</span>
+    </div>
+    <div class="gauge-wrap">
+      <div class="gauge-bg"><div class="gauge-fill" id="comp-strength-gauge" style="width:30%;background:var(--warn)"></div></div>
+    </div>
+    <div class="stat-row">
+      <span class="stat-label">Rival Strength</span>
+      <span class="stat-value" id="comp-strength">30%</span>
+    </div>
+    <div class="stat-row">
+      <span class="stat-label">Complaint Shift</span>
+      <span class="stat-value" id="complaint-shift">No</span>
+    </div>
+    <div class="tags" id="complaint-tags"></div>
+  </div>
+
+  <!-- Founder + Investor -->
+  <div class="card card-purple">
+    <div class="card-title">👤 Co-Founder · Ghost Protocol</div>
+    <div class="stat-row">
+      <span class="stat-label">Advice</span>
+      <span class="stat-value" id="advice" style="color:var(--purple)">stay_course</span>
+    </div>
+    <div class="stat-row" style="margin-top:6px">
+      <span class="stat-label">Confidence</span>
+      <span class="stat-value" id="confidence">100%</span>
+    </div>
+    <div class="gauge-wrap" style="margin-bottom:16px">
+      <div class="gauge-bg"><div class="gauge-fill" id="confidence-gauge" style="width:100%;background:var(--purple)"></div></div>
+    </div>
+
+    <div class="card-title" style="margin-top:4px">🏦 Investor State</div>
+    <div class="stat-row">
+      <span class="stat-label">Sentiment</span>
+      <span class="stat-value" id="sentiment">65%</span>
+    </div>
+    <div class="gauge-wrap">
+      <div class="gauge-bg"><div class="gauge-fill" id="sentiment-gauge" style="width:65%;background:var(--blue)"></div></div>
+    </div>
+    <div style="margin-top:10px;font-size:11px;color:var(--muted)">Milestone:</div>
+    <div style="font-size:12px;color:#ccc;margin-top:4px;line-height:1.5" id="milestone">Show 10% MoM revenue growth</div>
+    <div style="margin-top:8px;font-size:11px;color:var(--muted)">Pivot cost: <span class="mono" style="color:#aaa" id="pivot-cost">3 months</span></div>
+    <div style="font-size:11px;color:var(--muted);margin-top:4px">Months at risk: <span class="mono" style="color:#aaa" id="months-risk">0</span></div>
+  </div>
+
+</div>
+
+<!-- Row 2: Actions + Chart -->
+<div class="grid-wide">
+
+  <!-- Actions -->
+  <div class="card card-accent">
+    <div class="card-title">⚡ Agent Actions — Click to Step</div>
+    <div class="actions-grid">
+      <button class="action-btn" onclick="takeAction('EXECUTE')">
+        EXECUTE<span class="cost">Stay the course</span>
+      </button>
+      <button class="action-btn pivot-btn" onclick="takeAction('PIVOT')">
+        PIVOT<span class="cost">-3mo runway, -40% rev</span>
+      </button>
+      <button class="action-btn" onclick="takeAction('RESEARCH')">
+        RESEARCH<span class="cost">-0.5mo, reduce noise</span>
+      </button>
+      <button class="action-btn" onclick="takeAction('FUNDRAISE')">
+        FUNDRAISE<span class="cost">Pitch investor</span>
+      </button>
+      <button class="action-btn" onclick="takeAction('HIRE')">
+        HIRE<span class="cost">+$20k burn/mo</span>
+      </button>
+      <button class="action-btn" onclick="takeAction('CUT_COSTS')">
+        CUT_COSTS<span class="cost">-$30k burn, -20% growth</span>
+      </button>
+    </div>
+
+    <!-- Episode log -->
+    <div class="card-title" style="margin-top:20px">📋 Episode Log</div>
+    <div class="log-row" style="color:var(--muted);font-size:10px">
+      <span>Step</span><span>Action</span><span>Reward</span><span>Runway</span><span>Phase</span>
+    </div>
+    <div id="log-list"></div>
+  </div>
+
+  <!-- Reward chart -->
+  <div class="card card-blue">
+    <div class="card-title">📈 Reward Over Time</div>
+    <div class="chart-wrap"><canvas id="reward-chart"></canvas></div>
+    <div class="card-title" style="margin-top:20px">💹 Revenue vs Burn</div>
+    <div class="chart-wrap"><canvas id="financial-chart"></canvas></div>
+  </div>
+
+</div>
+
+<!-- Row 3: LLM Prompt -->
+<div class="grid-full">
+  <div class="card card-purple">
+    <div class="card-title">🤖 What the LLM Agent Reads (Prompt Encoder Output)</div>
+    <div id="prompt-box">Click Reset to start. Then take actions to see what the LLM would read at each step.</div>
+  </div>
+</div>
+
+<!-- Row 4: Episode Replay -->
+<div class="grid-full">
+  <div class="card card-blue">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <div class="card-title" style="margin-bottom:0">📼 Episode Replay — Full Timeline</div>
+      <button class="ctrl-btn secondary" style="padding:6px 14px;font-size:11px" onclick="exportReplay()">⬇ Export JSON</button>
+    </div>
+    <div id="replay-empty" style="font-size:12px;color:var(--muted);padding:12px 0">Play through an episode and the full step-by-step timeline will appear here.</div>
+    <div id="replay-table-wrap" style="display:none;overflow-x:auto">
+      <table id="replay-table" style="width:100%;border-collapse:collapse;font-family:'Space Mono',monospace;font-size:11px">
+        <thead>
+          <tr style="color:var(--muted);border-bottom:1px solid #222;text-align:left">
+            <th style="padding:6px 8px">Step</th>
+            <th style="padding:6px 8px">Action</th>
+            <th style="padding:6px 8px">Reward</th>
+            <th style="padding:6px 8px">Runway</th>
+            <th style="padding:6px 8px">Revenue</th>
+            <th style="padding:6px 8px">Churn</th>
+            <th style="padding:6px 8px">NPS</th>
+            <th style="padding:6px 8px">Competitor</th>
+            <th style="padding:6px 8px">Phase</th>
+          </tr>
+        </thead>
+        <tbody id="replay-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Row 5: Compare Baselines -->
+<div class="grid-full" style="margin-bottom:40px">
+  <div class="card card-accent">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <div class="card-title" style="margin-bottom:0">⚖️ Compare Baseline Agents (10 episodes each)</div>
+      <div style="display:flex;gap:10px;align-items:center">
+        <select class="ctrl-select" id="compare-scenario-select" style="font-size:11px;padding:6px 10px">
+          <option value="b2c_saas">B2C SaaS (Easy)</option>
+          <option value="enterprise_saas">Enterprise SaaS (Medium)</option>
+          <option value="fintech">Fintech (Medium-Hard)</option>
+          <option value="marketplace">Marketplace (Hard)</option>
+          <option value="consumer_app">Consumer App (Very Hard)</option>
+        </select>
+        <button class="ctrl-btn primary" style="padding:8px 18px;font-size:12px" onclick="runCompare()">▶ Run Comparison</button>
+      </div>
+    </div>
+    <div id="compare-status" style="font-size:12px;color:var(--muted);margin-bottom:12px">Select a scenario and click Run. This takes ~5 seconds (runs 30 episodes server-side).</div>
+    <div id="compare-results" style="display:none">
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px" id="compare-cards"></div>
+      <div style="font-size:11px;color:#333;margin-top:8px">* Baseline agents have no market phase knowledge. Your trained LLM should beat all three.</div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── State ──────────────────────────────────────────────────────────────────
+let obs = null, totalReward = 0, episode = 1, pivotStep = null;
+let rewardHistory = [], revenueHistory = [], burnHistory = [], stepLabels = [];
+let rewardChart, financialChart;
+let replayLog = [];  // full episode replay data
+const SCENARIOS = {
+  default: null,
+  b2c_saas: 'b2c_saas', marketplace: 'marketplace',
+  enterprise_saas: 'enterprise_saas', consumer_app: 'consumer_app', fintech: 'fintech'
+};
+
+// ── Chart setup ───────────────────────────────────────────────────────────
+function initCharts() {
+  const chartOpts = (label, color) => ({
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { ticks: { color: '#555', font: { size: 9 } }, grid: { color: '#111' } },
+      y: { ticks: { color: '#555', font: { size: 9 } }, grid: { color: '#111' } }
+    },
+    animation: { duration: 200 }
+  });
+
+  rewardChart = new Chart(document.getElementById('reward-chart'), {
+    type: 'line',
+    data: { labels: [], datasets: [{ label: 'Reward', data: [], borderColor: '#00ff88', backgroundColor: '#00ff8822', fill: true, tension: 0.3, pointRadius: 0 }] },
+    options: chartOpts('Reward', '#00ff88')
+  });
+
+  financialChart = new Chart(document.getElementById('financial-chart'), {
+    type: 'line',
+    data: {
+      labels: [],
+      datasets: [
+        { label: 'Revenue', data: [], borderColor: '#00aaff', fill: false, tension: 0.3, pointRadius: 0 },
+        { label: 'Burn', data: [], borderColor: '#ff4444', fill: false, tension: 0.3, pointRadius: 0, borderDash: [4,2] }
+      ]
+    },
+    options: { ...chartOpts(), plugins: { legend: { display: true, labels: { color: '#666', font: { size: 10 } } } } }
+  });
+}
+
+function pushChartData(step, reward, revenue, burn) {
+  rewardChart.data.labels.push(`m${step}`);
+  rewardChart.data.datasets[0].data.push(reward);
+  financialChart.data.labels.push(`m${step}`);
+  financialChart.data.datasets[0].data.push(Math.round(revenue / 1000));
+  financialChart.data.datasets[1].data.push(Math.round(burn / 1000));
+  rewardChart.update('none'); financialChart.update('none');
+}
+
+function clearCharts() {
+  rewardChart.data.labels = []; rewardChart.data.datasets[0].data = [];
+  financialChart.data.labels = [];
+  financialChart.data.datasets[0].data = []; financialChart.data.datasets[1].data = [];
+  rewardChart.update(); financialChart.update();
+}
+
+// ── API calls ─────────────────────────────────────────────────────────────
+async function resetEpisode() {
+  document.getElementById('done-overlay').classList.remove('show');
+  setStatus('Resetting episode...');
+  const scenario = document.getElementById('scenario-select').value;
+  const params = scenario !== 'default' ? `?scenario=${scenario}` : '';
+  try {
+    const res = await fetch('/ui/reset' + params, { method: 'POST' });
+    obs = await res.json();
+    totalReward = 0; pivotStep = null; replayLog = [];
+    document.getElementById('total-reward').textContent = '0.0';
+    document.getElementById('ep-num').textContent = episode;
+    clearCharts();
+    document.getElementById('log-list').innerHTML = '';
+    document.getElementById('replay-tbody').innerHTML = '';
+    document.getElementById('replay-table-wrap').style.display = 'none';
+    document.getElementById('replay-empty').style.display = 'block';
+    hideAlert();
+    updateUI(obs, 0);
+    setStatus('Episode started. Click an action to take a step.');
+    enableActions(true);
+  } catch(e) { setStatus('Error: ' + e.message); }
+}
+
+async function takeAction(actionType) {
+  if (!obs) { alert('Click Reset first!'); return; }
+  enableActions(false);
+  setStatus(`Taking action: ${actionType}...`);
+  try {
+    const res = await fetch('/ui/step', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action_type: actionType, action_params: null, metadata: {} })
+    });
+    const data = await res.json();
+    // openenv-core returns observation directly (reward/done inside it)
+    obs = data.observation || data;
+    const reward = data.reward ?? obs.reward ?? 0;
+    const done = data.done ?? obs.done ?? false;
+    const phase = (data.info || obs.metadata || {}).true_phase || '?';
+    totalReward += reward || 0;
+    document.getElementById('total-reward').textContent = totalReward.toFixed(1);
+
+    if (actionType === 'PIVOT') pivotStep = obs.step;
+
+    addLogRow(obs.step, actionType, reward, obs.runway_remaining, phase);
+    pushChartData(obs.step, reward, obs.monthly_revenue, obs.burn_rate);
+    const replayEntry = { step: obs.step, action: actionType, reward: +(reward||0).toFixed(2), runway: obs.runway_remaining, revenue: Math.round(obs.monthly_revenue), churn: obs.churn_rate, nps: obs.nps_score, competitor_play: obs.competitor_play || 'dormant', phase };
+    replayLog.push(replayEntry);
+    addReplayRow(replayEntry);
+    updateUI(obs, reward, phase);
+
+    if (done) {
+      showDoneOverlay(obs);
+      episode++;
+    } else {
+      enableActions(true);
+      setStatus(`Step ${obs.step}/60 complete. Reward: ${(reward||0).toFixed(1)}`);
+    }
+
+    // Fetch LLM prompt from server
+    fetchPrompt();
+  } catch(e) { setStatus('Error: ' + e.message); enableActions(true); }
+}
+
+async function fetchPrompt() {
+  try {
+    const res = await fetch('/prompt');
+    const data = await res.json();
+    document.getElementById('prompt-box').textContent = data.prompt || '(unavailable)';
+  } catch { /* prompt endpoint may not exist yet */ }
+}
+
+// ── UI updates ─────────────────────────────────────────────────────────────
+function updateUI(o, reward, phase) {
+  if (!o) return;
+
+  // Phase badge
+  const phaseColors = { GROWTH: 'badge-green', SATURATION: 'badge-warn', DECLINE: 'badge-red' };
+  const pb = document.getElementById('phase-badge');
+  pb.textContent = phase || 'GROWTH';
+  pb.className = 'badge ' + (phaseColors[phase] || 'badge-green');
+  document.getElementById('step-badge').textContent = `Step ${o.step}/60`;
+  document.getElementById('reward-badge').textContent = `Reward: ${(reward||0).toFixed(1)}`;
+
+  // Financial
+  const runway = o.runway_remaining;
+  document.getElementById('runway').textContent = runway >= 999 ? '∞ (profitable)' : `${runway} mo`;
+  const runwayPct = Math.min(100, (runway / 24) * 100);
+  const rg = document.getElementById('runway-gauge');
+  rg.style.width = runwayPct + '%';
+  rg.style.background = runway < 3 ? 'var(--danger)' : runway < 6 ? 'var(--warn)' : 'var(--accent)';
+
+  document.getElementById('revenue').textContent = '$' + Math.round(o.monthly_revenue).toLocaleString();
+  document.getElementById('burn').textContent = '$' + Math.round(o.burn_rate).toLocaleString();
+  const net = o.monthly_revenue - o.burn_rate;
+  const netEl = document.getElementById('net-flow');
+  netEl.textContent = (net >= 0 ? '+' : '') + '$' + Math.round(net).toLocaleString() + '/mo';
+  netEl.className = 'stat-value ' + (net >= 0 ? 'ok' : 'danger');
+  document.getElementById('rev-delta').textContent = ((o.revenue_delta_3m || 0) * 100).toFixed(1) + '%';
+
+  setTrend('rev-trend', o.revenue_trend || 'growing');
+
+  // Market signals
+  const churnPct = (o.churn_rate * 100).toFixed(1);
+  document.getElementById('churn').textContent = churnPct + '%';
+  const cg = document.getElementById('churn-gauge');
+  cg.style.width = Math.min(100, o.churn_rate * 200) + '%';
+  cg.style.background = o.churn_rate > 0.4 ? 'var(--danger)' : o.churn_rate > 0.2 ? 'var(--warn)' : 'var(--accent)';
+  setTrend('churn-trend', o.churn_trend || 'stable');
+
+  const nps = o.nps_score;
+  document.getElementById('nps').textContent = nps;
+  const ng = document.getElementById('nps-gauge');
+  ng.style.width = Math.max(0, ((nps + 100) / 200) * 100) + '%';
+  ng.style.background = nps < 0 ? 'var(--danger)' : nps < 20 ? 'var(--warn)' : 'var(--accent)';
+
+  document.getElementById('competitor').textContent = o.competitor_launched ? '⚔️ YES — major move' : '—';
+
+  // Competitor intelligence
+  const compPlayLabels = {
+    dormant: 'Dormant', launch_feature: 'Launch Feature',
+    price_war: 'Price War', talent_raid: 'Talent Raid', aggressive_mkt: 'Aggressive Mkt'
+  };
+  const compPlay = o.competitor_play || 'dormant';
+  const compStr = o.competitor_strength || 0.3;
+  document.getElementById('comp-play').textContent = compPlayLabels[compPlay] || compPlay;
+  document.getElementById('comp-play').style.color = compPlay === 'dormant' ? 'var(--muted)' : 'var(--warn)';
+  document.getElementById('comp-strength').textContent = Math.round(compStr * 100) + '%';
+  const csg = document.getElementById('comp-strength-gauge');
+  csg.style.width = Math.round(compStr * 100) + '%';
+  csg.style.background = compStr > 0.7 ? 'var(--danger)' : compStr > 0.5 ? 'var(--warn)' : '#444';
+
+  document.getElementById('complaint-shift').textContent = o.complaint_shift_detected ? '🔄 YES' : 'No';
+
+  const tagsEl = document.getElementById('complaint-tags');
+  tagsEl.innerHTML = (o.user_complaints || []).map(c =>
+    `<span class="tag ${o.complaint_shift_detected ? 'shift' : ''}">${c.replace(/_/g,' ')}</span>`
+  ).join('');
+
+  // Founder
+  document.getElementById('advice').textContent = (o.founder_advice || 'stay_course').replace(/_/g,' ');
+  const conf = Math.round((o.founder_confidence || 1) * 100);
+  document.getElementById('confidence').textContent = conf + '%';
+  const confG = document.getElementById('confidence-gauge');
+  confG.style.width = conf + '%';
+  confG.style.background = conf < 30 ? 'var(--danger)' : conf < 60 ? 'var(--warn)' : 'var(--purple)';
+
+  // Investor
+  const sent = Math.round((o.investor_sentiment || 0.65) * 100);
+  document.getElementById('sentiment').textContent = sent + '%';
+  document.getElementById('sentiment-gauge').style.width = sent + '%';
+  document.getElementById('milestone').textContent = o.next_milestone || '—';
+  document.getElementById('pivot-cost').textContent = (o.pivot_cost_estimate || 3) + ' months';
+  document.getElementById('months-risk').textContent = o.months_at_risk || 0;
+
+  // Alerts
+  if (runway < 3 && runway !== 999) showAlert('🚨 CRITICAL: Under 3 months of runway. Fundraise or Cut Costs immediately.', 'danger');
+  else if (o.churn_trend === 'spiking') showAlert('⚠ Churn is spiking. Market may be declining — consider Researching or Pivoting.', 'warn');
+  else if (o.complaint_shift_detected) showAlert('🔄 Customer complaint types have shifted. This may signal a market phase change.', 'warn');
+  else if (o.competitor_launched) showAlert('⚔️ A competitor made a major move this month.', 'warn');
+  else hideAlert();
+}
+
+function setTrend(id, val) {
+  const el = document.getElementById(id);
+  el.textContent = val; el.className = 'trend ' + val;
+}
+
+function addLogRow(step, action, reward, runway, phase) {
+  const list = document.getElementById('log-list');
+  const r = reward || 0;
+  const row = document.createElement('div');
+  row.className = 'log-row';
+  row.innerHTML = `
+    <span>${step}</span>
+    <span class="log-action ${action==='PIVOT'?'pivot':''}">${action}</span>
+    <span class="log-reward ${r>=0?'pos':'neg'}">${r>=0?'+':''}${r.toFixed(1)}</span>
+    <span>${runway>=999?'∞':runway+'mo'}</span>
+    <span style="color:#444">${phase}</span>
+  `;
+  list.insertBefore(row, list.firstChild);
+}
+
+function showDoneOverlay(o) {
+  document.getElementById('done-title').textContent = o.runway_remaining <= 0 ? '💀 STARTUP FAILED' : '✅ SURVIVED 60 MONTHS';
+  document.getElementById('done-msg').textContent = o.runway_remaining <= 0
+    ? 'You ran out of runway. The startup shut down.' : 'You survived the full 60-month simulation!';
+  document.getElementById('done-reward').textContent = totalReward.toFixed(0);
+  document.getElementById('done-survived').textContent = o.runway_remaining > 0 ? 'YES' : 'NO';
+  document.getElementById('done-pivot').textContent = pivotStep !== null ? `Step ${pivotStep}` : 'Never';
+  document.getElementById('done-revenue').textContent = '$' + Math.round(o.monthly_revenue).toLocaleString();
+  document.getElementById('done-overlay').classList.add('show');
+  enableActions(false);
+}
+
+function showAlert(msg, type) {
+  const el = document.getElementById('alert-strip');
+  el.textContent = msg; el.className = 'alert-strip show ' + type;
+}
+function hideAlert() {
+  document.getElementById('alert-strip').className = 'alert-strip';
+}
+function setStatus(msg) {
+  document.getElementById('status-msg').textContent = msg;
+}
+function enableActions(on) {
+  document.querySelectorAll('.action-btn').forEach(b => b.disabled = !on);
+}
+
+// ── Episode Replay ────────────────────────────────────────────────────────
+function addReplayRow(e) {
+  document.getElementById('replay-empty').style.display = 'none';
+  document.getElementById('replay-table-wrap').style.display = 'block';
+  const tbody = document.getElementById('replay-tbody');
+  const tr = document.createElement('tr');
+  const isAction = (a) => a === 'PIVOT' ? 'var(--warn)' : a === 'EXECUTE' ? 'var(--muted)' : 'var(--blue)';
+  const rColor = e.reward >= 0 ? 'var(--accent)' : 'var(--danger)';
+  const compColor = e.competitor_play === 'dormant' ? '#444' : 'var(--warn)';
+  tr.style.borderBottom = '1px solid #111';
+  tr.innerHTML = `
+    <td style="padding:5px 8px;color:#666">${e.step}</td>
+    <td style="padding:5px 8px;color:${isAction(e.action)};font-weight:700">${e.action}</td>
+    <td style="padding:5px 8px;color:${rColor}">${e.reward >= 0 ? '+' : ''}${e.reward}</td>
+    <td style="padding:5px 8px;color:#aaa">${e.runway >= 999 ? '∞' : e.runway + 'mo'}</td>
+    <td style="padding:5px 8px;color:#aaa">$${e.revenue.toLocaleString()}</td>
+    <td style="padding:5px 8px;color:#aaa">${(e.churn * 100).toFixed(1)}%</td>
+    <td style="padding:5px 8px;color:#aaa">${e.nps}</td>
+    <td style="padding:5px 8px;color:${compColor}">${e.competitor_play}</td>
+    <td style="padding:5px 8px;color:#555">${e.phase}</td>
+  `;
+  tbody.appendChild(tr);
+  tbody.parentElement.parentElement.scrollTop = 99999;
+}
+
+function exportReplay() {
+  if (!replayLog.length) { alert('No episode data yet — play some steps first.'); return; }
+  const blob = new Blob([JSON.stringify({ episode, scenario: document.getElementById('scenario-select').value, steps: replayLog }, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = `pivot_episode_${episode}.json`; a.click();
+}
+
+// ── Compare Baselines ─────────────────────────────────────────────────────
+async function runCompare() {
+  const scenario = document.getElementById('compare-scenario-select').value;
+  document.getElementById('compare-status').textContent = 'Running 30 episodes across 3 agents... (may take 10-15 seconds)';
+  document.getElementById('compare-results').style.display = 'none';
+  try {
+    const res = await fetch(`/compare?scenario=${scenario}&n_episodes=10`);
+    if (!res.ok) throw new Error(await res.text());
+    const data = await res.json();
+    renderCompareResults(data.results);
+    document.getElementById('compare-status').textContent = `Done! Results for scenario: ${scenario}`;
+  } catch(e) {
+    document.getElementById('compare-status').textContent = 'Error: ' + e.message;
+  }
+}
+
+function renderCompareResults(results) {
+  const agentColors = { random: '#888', stubborn: 'var(--danger)', panic: 'var(--warn)' };
+  const agentDesc = {
+    random: 'Picks a random action every step. Sets the lower bound.',
+    stubborn: 'Always EXECUTE. Never adapts. Common founder failure mode.',
+    panic: 'Pivots the moment two danger signals appear. Over-reactive.'
+  };
+  const cards = document.getElementById('compare-cards');
+  cards.innerHTML = '';
+  results.forEach(r => {
+    const color = agentColors[r.agent] || 'var(--blue)';
+    const survPct = Math.round((r.survival_rate || 0) * 100);
+    const pivPct = Math.round((r.pivot_rate || 0) * 100);
+    const card = document.createElement('div');
+    card.style.cssText = 'background:#0a0a0a;border:1px solid #222;border-top:2px solid '+color+';border-radius:8px;padding:16px';
+    card.innerHTML = `
+      <div style="font-family:'Space Mono',monospace;font-size:13px;color:${color};font-weight:700;margin-bottom:6px;text-transform:uppercase">${r.agent}</div>
+      <div style="font-size:11px;color:#555;margin-bottom:14px">${agentDesc[r.agent] || ''}</div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <div style="display:flex;justify-content:space-between"><span style="font-size:11px;color:#666">Mean Reward</span><span style="font-family:'Space Mono',monospace;font-size:13px;color:${r.mean_reward>=0?'var(--accent)':'var(--danger)'}">${(r.mean_reward||0).toFixed(1)}</span></div>
+        <div style="display:flex;justify-content:space-between"><span style="font-size:11px;color:#666">Survival Rate</span><span style="font-family:'Space Mono',monospace;font-size:13px;color:#aaa">${survPct}%</span></div>
+        <div style="display:flex;justify-content:space-between"><span style="font-size:11px;color:#666">Pivot Rate</span><span style="font-family:'Space Mono',monospace;font-size:13px;color:#aaa">${pivPct}%</span></div>
+        <div style="display:flex;justify-content:space-between"><span style="font-size:11px;color:#666">Episodes</span><span style="font-family:'Space Mono',monospace;font-size:11px;color:#555">${r.n_episodes}</span></div>
+      </div>
+    `;
+    cards.appendChild(card);
+  });
+  document.getElementById('compare-results').style.display = 'block';
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────
+initCharts();
+enableActions(false);
+</script>
+</body>
+</html>

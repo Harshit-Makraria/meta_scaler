@@ -1,0 +1,30 @@
+{
+  "name": "enterprise_saas",
+  "display_name": "Enterprise SaaS Disruption",
+  "description": "Enterprise SaaS with long sales cycles and sticky customers. Decline is slow and gradual — agent must resist false alarms in early saturation. Medium difficulty.",
+  "difficulty": "medium",
+  "initial_state": {
+    "revenue": 72000,
+    "burn_rate": 180000,
+    "runway": 20,
+    "churn_rate": 0.05,
+    "nps": 61
+  },
+  "phases": {
+    "GROWTH":      { "steps": [0, 25], "revenue_growth_rate": 0.06, "churn_drift": 0.001, "nps_drift": -0.2,  "competitor_activity": 0.03 },
+    "SATURATION":  { "steps": [26, 40], "revenue_growth_rate": 0.02, "churn_drift": 0.005, "nps_drift": -1.2,  "competitor_activity": 0.15 },
+    "DECLINE":     { "steps": [41, 60], "revenue_growth_rate": -0.03, "churn_drift": 0.010, "nps_drift": -2.5,  "competitor_activity": 0.40 }
+  },
+  "complaint_distributions": {
+    "GROWTH":     { "missing_feature": 0.55, "docs_outdated": 0.20, "api_too_complex": 0.15, "slow_performance": 0.10 },
+    "SATURATION": { "api_too_complex": 0.30, "missing_feature": 0.30, "too_expensive": 0.25, "no_team_features": 0.15 },
+    "DECLINE":    { "too_expensive": 0.40, "competitor_is_better": 0.35, "api_too_complex": 0.15, "cant_export_data": 0.10 }
+  },
+  "optimal_pivot_window": [43, 50],
+  "pivot_outcome": {
+    "churn_reset": -0.04,
+    "nps_drop_on_pivot": -12,
+    "revenue_multiplier_after_pivot": 0.65
+  },
+  "notes": "Sticky enterprise customers mean slow churn. Agent must not panic-pivot in early saturation. Teaches patience and signal accumulation."
+}
