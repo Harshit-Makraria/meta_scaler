@@ -59,6 +59,9 @@ class AdaptiveCurriculum:
     Tracks which difficulty tier the training run is on and decides when to advance.
     Replay buffer re-uses completed episodes so the model doesn't forget easy tiers.
     """
+    # Class-level reference so instances can access via self.DIFFICULTY_LADDER
+    DIFFICULTY_LADDER: list[str] = None  # set in __post_init__
+
     seed: int = 42
     current_tier: int = 0                         # 0-indexed into DIFFICULTY_LADDER
     _recent_rewards: list[float] = field(default_factory=list, init=False)
@@ -68,6 +71,7 @@ class AdaptiveCurriculum:
     _rng: random.Random = field(init=False)
 
     def __post_init__(self):
+        self.DIFFICULTY_LADDER = DIFFICULTY_LADDER  # make accessible as instance attr
         self._rng = random.Random(self.seed)
         self._load_scenarios()
 
