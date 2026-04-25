@@ -195,6 +195,7 @@
     <span class="badge badge-green mono" id="reward-badge">Reward: 0.0</span>
   </div>
   <div id="status-msg">Click Reset to start a new episode.</div>
+  <a href="/chat" style="margin-left:auto;padding:8px 18px;background:var(--purple);color:#000;border-radius:5px;font-family:'Space Mono',monospace;font-size:11px;font-weight:700;text-decoration:none;letter-spacing:1px">💬 AI CHAT →</a>
 </header>
 
 <!-- Alert strip -->
@@ -1029,7 +1030,7 @@ async function sendChat() {
 
   const body = { message: msg, history: chatHistory };
   try {
-    const data = await fetch('/chat', {
+    const data = await fetch('/api/chat', {
       method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body)
     }).then(r => r.json());
 

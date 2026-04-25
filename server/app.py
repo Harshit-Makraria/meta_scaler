@@ -455,7 +455,13 @@ def model_status():
     }
 
 
-@app.post("/chat")
+@app.get("/chat", response_class=HTMLResponse, include_in_schema=False)
+def chat_page():
+    """Serve the standalone chat page."""
+    return FileResponse(str(STATIC_DIR / "chat.html"))
+
+
+@app.post("/api/chat")
 def chat_endpoint(req: ChatRequest):
     """
     Chat with the trained startup advisor model.
