@@ -5,9 +5,28 @@ Author: Harshit Makraria · GitHub: [Harshit-Makraria/meta_scaler](https://githu
 
 ---
 
-## 0. Hackathon Theme — T4: Self-Improvement
+## 0. Hackathon Themes — Coverage Map
 
-### What the theme means
+### Primary Theme: **Theme #4 — Self-Improvement** ✅
+### Secondary Theme: **Theme #2 — Long-Horizon Planning** ✅
+### Also Touches: **Theme #1 — Multi-Agent Interactions** + **Theme #3.1 — World Modeling**
+
+---
+
+### Quick Reference — Theme vs. Feature vs. File
+
+| Theme | What it requires | How The Pivot delivers | Where in code |
+|---|---|---|---|
+| **T4 Self-Improvement** | Agents learn to drive own capability growth through adaptive curricula or self-play | GRPO trains agent from its own episode history; AdaptiveCurriculum auto-escalates difficulty when performance improves; KL penalty prevents capability regression | `training/train_colab.ipynb`, `training/curriculum.py` |
+| **T4 Self-Improvement** | Recursive skill amplification | Agent at Tier 1 reuses skills at Tier 5 (20% replay); each tier is strictly harder; the agent's own reward decides when to unlock the next | `training/curriculum.py` L44–55 |
+| **T2 Long-Horizon Planning** | 60+ step reasoning with sparse/delayed rewards | 60-month episode; market phase hidden throughout; pivot timing reward only fires at the right window (steps 39–46 for b2c_saas); agent must plan across the full horizon | `server/pivot_environment.py`, `server/reward.py` |
+| **T2 Long-Horizon Planning** | State tracking beyond context memory | Multi-turn memory encoder shows last 3 steps as assistant turns in the prompt; agent must reason about trajectory, not just current step | `server/prompt_encoder.py` `encode_to_messages()` |
+| **T1 Multi-Agent** | Cooperation, competition, negotiation | Three independent NPC agents: CompetitorAgent (exploits your weaknesses), InvestorAgent (3 funding rounds with shifting requirements), FounderAgent (Ghost Protocol — advice degrades under pressure) | `server/competitor.py`, `server/investor.py`, `server/founder.py` |
+| **T3.1 World Modeling** | Partially observable world with causal feedback | Market phase NEVER revealed to agent; NPS/churn signals are noisy (RESEARCH reduces noise level); every action has real causal consequences on runway/revenue/morale | `server/market.py`, `server/signals.py` |
+
+---
+
+### Theme #4 — Self-Improvement (Primary, ~70% of design)
 
 The hackathon's T4 track is titled **"Self-Improvement"** — building systems where an AI agent improves its own capabilities through experience. The Pivot hits this theme at three distinct levels:
 
@@ -102,6 +121,70 @@ Real startup founders face exactly a self-improvement challenge. When a market s
 4. **Improve judgment** for future decisions (not panic-pivot next time)
 
 The Pivot trains an LLM to do all four — and the trained policy can then act as an "experienced advisor" to real founders who haven't been through a market shift before. The agent's self-improvement directly translates to better real-world advice.
+
+---
+
+### Theme #2 — Long-Horizon Planning & Instruction Following (Secondary, ~20% of design)
+
+**What the theme requires:** environments that force multi-step reasoning with sparse or delayed rewards — pushing agents to decompose goals, track state across extended trajectories, and recover from early mistakes.
+
+**How The Pivot delivers it:**
+
+| Requirement | Implementation | File |
+|---|---|---|
+| Deep multi-step reasoning | 60 sequential decisions; each month affects the next (runway depletes, revenue compounds, morale decays) | `server/pivot_environment.py` |
+| Sparse / delayed rewards | Pivot timing bonus (+50) only fires if pivot happens inside a 7-month window (e.g. steps 39–46 for b2c_saas). Agent must plan toward this from step 1. | `server/reward.py` `_pivot_timing()` |
+| Hidden state across trajectory | Market phase (GROWTH/SATURATION/DECLINE) is **never revealed**. Agent must infer it from signal drift over many steps. | `server/market.py` |
+| State tracking beyond single context | `encode_to_messages()` appends last 3 steps as chat history turns. Without this, the 0.5B model has no memory of prior decisions. | `server/prompt_encoder.py` L60–80 |
+| Recovery from early mistakes | Premature PIVOT costs −3mo runway. Agent must learn to wait — and if it pivoted too early, switch to CUT_COSTS to survive. | `server/reward.py` `_acqui_hire()` |
+| Instruction following at scale | Agent reads a 400-token natural language observation every step (KPIs, signals, competitive intel, board pressure, shock events) and must extract the right action | `server/prompt_encoder.py` |
+
+**Why this is genuinely long-horizon:** On the hardest scenario (`consumer_app`), decline starts at month 23 and the optimal pivot window is months 26–30. An agent that detects this correctly must have been tracking signal drift since month ~10 — 13 steps of patient observation before acting. That's not next-token reasoning; that's trajectory-level planning.
+
+---
+
+### Theme #1 — Multi-Agent Interactions (Partial, ~10% of design)
+
+**What the theme requires:** cooperation, competition, negotiation, and coalition formation — environments where agents model the beliefs and incentives of others.
+
+**How The Pivot delivers it:**
+
+The Pivot has **four agents** operating simultaneously. Only the Founder/CEO (the LLM being trained) is learned. The other three are deterministic rule-based NPCs:
+
+| Agent | Type | Role | Strategic interaction |
+|---|---|---|---|
+| **Founder/CEO** | 🧠 Trained LLM | All 7 decisions each month | Must model investor + competitor behaviour |
+| **CompetitorAgent** | Rule-based | 5 strategies: DORMANT → LAUNCH_FEATURE → PRICE_WAR → TALENT_RAID → AGGRESSIVE_MKT | Reads your metrics and **targets your weakness** (e.g. TALENT_RAID when your team morale is low) |
+| **InvestorAgent** | Rule-based | 3 funding rounds: $500K seed → $2M Series A → $5M Series B | Requirements shift at steps 20 and 40; negotiation window is finite |
+| **FounderAgent** | Rule-based | Internal team advisor | **Ghost Protocol**: advice reliability degrades under financial pressure — agent must learn when to override panicking team |
+
+**The competitive dynamic:** CompetitorAgent has `strength` that scales from 0.2 (easy, Tier 1) to 1.0 (hard, Tier 5). On Tier 5 (`consumer_app`), a PRICE_WAR from a strong competitor at step 25 simultaneously cuts your NPS by 7 and raises your CAC — forcing the LLM to reason about adversarial pressure on top of pivot timing.
+
+**File:** `server/competitor.py`, `server/investor.py`, `server/founder.py`
+
+---
+
+### Theme #3.1 — World Modeling / Professional Tasks (Partial)
+
+The environment models a realistic startup world with genuine causal structure:
+
+- **Partial observability:** The true market phase is hidden. Signals (NPS, churn, CAC) are noisy — RESEARCH action reduces noise level for 3 steps. An agent that never uses RESEARCH is flying blind.
+- **Causal feedback loops:** HIRE → +product velocity → revenue grows faster, but +$20k burn → runway shrinks. CUT_COSTS → −$30k burn, but −morale → revenue declines. Every action has second-order effects.
+- **6 macro shock events** fire unpredictably: `funding_winter`, `viral_moment`, `key_engineer_quits`, `competitor_acquired`, `regulatory_change`, `key_customer_churns`. The agent cannot predict them — it must react.
+- **Real startup KPIs** in the observation: MRR, burn rate, runway, NPS, churn rate, CAC/LTV, product velocity, competitor play, board pressure. A judge who has worked in startups will recognise these as real.
+
+**File:** `server/market.py`, `server/signals.py`, `server/runway.py`
+
+---
+
+### Judging Criteria Self-Assessment
+
+| Criterion | Weight | What we provide |
+|---|---|---|
+| **Environment Innovation** | 40% | Hidden market phase shifts + 3 NPC adversaries + 6 random shocks + 5 difficulty tiers + Ghost Protocol advisor decay. No existing RL benchmark tests LLM pivot-timing under adversarial pressure. |
+| **Storytelling** | 30% | Live demo at `/ui`, standalone AI chat at `/chat`, counterfactual replay ("what if I pivoted at month 38?"), advisor mode with real startup metrics. Non-technical judges can play it in the browser. |
+| **Showing Improvement in Rewards** | 20% | W&B dashboard at wandb.ai/models-nexica-ai. Training curves committed to `docs/plots/`. Baseline comparison: RandomAgent vs StubbornAgent vs PanicAgent vs TrainedLLM in Cell 11. |
+| **Reward & Training Pipeline** | 10% | 8-component composable reward (survival + growth + pivot_timing + efficiency + founder_awareness + board_pressure + acqui_hire + shock_survival). GRPO + KL penalty + AdaptiveCurriculum. Full Colab notebook, 12 cells, runs end-to-end on T4. |
 
 ---
 
