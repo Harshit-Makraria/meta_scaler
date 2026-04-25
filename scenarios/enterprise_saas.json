@@ -1,30 +1,55 @@
 {
   "name": "enterprise_saas",
   "display_name": "Enterprise SaaS Disruption",
-  "description": "Enterprise SaaS with long sales cycles and sticky customers. Decline is slow and gradual — agent must resist false alarms in early saturation. Medium difficulty.",
+  "description": "Enterprise SaaS with long sales cycles and sticky customers. Decline is slow and gradual — agent must resist false alarms in early saturation and read enterprise-specific signals. Medium difficulty.",
   "difficulty": "medium",
+  "data_sources": [
+    "Gainsight 2023 — enterprise B2B monthly churn avg 0.8% (approx 10% annual net)",
+    "Carta 2024 — enterprise seed burn $150-180K/mo (sales team + compliance overhead)",
+    "Doran 2024 — B2B SaaS avg NPS 41, top quartile 60+",
+    "OpenView 2023-2024 — B2B SaaS at $1-5M ARR grows 25-35% YoY (~2.2%/mo avg)",
+    "Crunchbase 2024 — enterprise seed runway median 20 months"
+  ],
   "initial_state": {
     "revenue": 72000,
-    "burn_rate": 180000,
+    "burn_rate": 150000,
     "runway": 20,
-    "churn_rate": 0.05,
-    "nps": 61
+    "churn_rate": 0.008,
+    "nps": 41,
+    "team_size": 11,
+    "eng_headcount": 5,
+    "sales_headcount": 4,
+    "support_headcount": 2,
+    "pmf_score": 0.62,
+    "tech_debt": 0.10,
+    "team_morale": 0.78,
+    "base_cac": 8500,
+    "arpu": 2400,
+    "customer_count": 30,
+    "brand_awareness": 0.25,
+    "pipeline": 4
   },
   "phases": {
-    "GROWTH":      { "steps": [0, 25], "revenue_growth_rate": 0.06, "churn_drift": 0.001, "nps_drift": -0.2,  "competitor_activity": 0.03 },
-    "SATURATION":  { "steps": [26, 40], "revenue_growth_rate": 0.02, "churn_drift": 0.005, "nps_drift": -1.2,  "competitor_activity": 0.15 },
-    "DECLINE":     { "steps": [41, 60], "revenue_growth_rate": -0.03, "churn_drift": 0.010, "nps_drift": -2.5,  "competitor_activity": 0.40 }
+    "GROWTH":     { "steps": [0, 25],  "revenue_growth_rate": 0.060, "churn_drift": 0.0005,"nps_drift": -0.2,  "competitor_activity": 0.03 },
+    "SATURATION": { "steps": [26, 40], "revenue_growth_rate": 0.018, "churn_drift": 0.004, "nps_drift": -1.2,  "competitor_activity": 0.18 },
+    "DECLINE":    { "steps": [41, 60], "revenue_growth_rate": -0.025,"churn_drift": 0.009, "nps_drift": -2.5,  "competitor_activity": 0.40 }
   },
   "complaint_distributions": {
     "GROWTH":     { "missing_feature": 0.55, "docs_outdated": 0.20, "api_too_complex": 0.15, "slow_performance": 0.10 },
     "SATURATION": { "api_too_complex": 0.30, "missing_feature": 0.30, "too_expensive": 0.25, "no_team_features": 0.15 },
     "DECLINE":    { "too_expensive": 0.40, "competitor_is_better": 0.35, "api_too_complex": 0.15, "cant_export_data": 0.10 }
   },
-  "optimal_pivot_window": [43, 50],
+  "optimal_pivot_window": [43, 51],
   "pivot_outcome": {
-    "churn_reset": -0.04,
+    "churn_reset": -0.003,
     "nps_drop_on_pivot": -12,
     "revenue_multiplier_after_pivot": 0.65
   },
-  "notes": "Sticky enterprise customers mean slow churn. Agent must not panic-pivot in early saturation. Teaches patience and signal accumulation."
+  "real_world_parallel": {
+    "example": "Notion pivot from Mac design tool (month 24, 3mo runway) — crisis clarity forced scope reduction",
+    "churn_at_pivot_historically": 0.12,
+    "runway_at_pivot_historically": 3,
+    "outcome": "$10B valuation (2021)"
+  },
+  "notes": "Enterprise churn 0.8%/mo = real Gainsight 2023 data. Low churn means agent must not panic-pivot on early saturation. High burn ($150K) because enterprise needs sales team."
 }

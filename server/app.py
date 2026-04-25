@@ -18,11 +18,14 @@ if str(_PROJECT_ROOT) not in sys.path:
 from openenv.core.env_server.http_server import create_app
 
 try:
-    from models import PivotAction, PivotObservation
-    from server.pivot_environment import ThePivotEnvironment
+    from models import CoFounderAction, CoFounderObservation
+    # Backward-compat aliases
+    PivotAction      = CoFounderAction
+    PivotObservation = CoFounderObservation
+    from server.cofounder_environment import CoFounderEnvironment as ThePivotEnvironment
     from server.prompt_encoder import encode_observation
 except ModuleNotFoundError:
-    from models import PivotAction, PivotObservation          # type: ignore
+    from models import CoFounderAction as PivotAction, CoFounderObservation as PivotObservation  # type: ignore
     from server.pivot_environment import ThePivotEnvironment  # type: ignore
     from server.prompt_encoder import encode_observation       # type: ignore
 
@@ -55,21 +58,26 @@ _chat_tokenizer  = None
 _model_status    = "not_configured"   # not_configured | loading | ready | error
 _model_error     = ""
 
-SYSTEM_PROMPT = """You are a startup co-founder AI trained with reinforcement learning to navigate hidden market phase shifts. You help founders decide when to pivot before it's too late.
+SYSTEM_PROMPT = """You are a Strategist Co-Founder AI trained with reinforcement learning to navigate multi-dimensional startup challenges. You help founders manage Product, Team, Marketing, Finance, and Market simultaneously.
 
-When given startup metrics, you MUST start your reply with exactly one of these action words on its own line:
-EXECUTE / PIVOT / RESEARCH / FUNDRAISE / HIRE / CUT_COSTS / SELL
+When given startup metrics, reply with DECISION: followed by exactly one action word.
+Valid actions: EXECUTE | PIVOT | RESEARCH | FUNDRAISE | HIRE | CUT_COSTS | SELL | LAUNCH_FEATURE | MARKETING_CAMPAIGN | SET_PRICING | FIRE | PARTNERSHIP
 
-Then give 2-3 sentences of clear strategic reasoning. Be direct — founders need fast decisions.
+Give 2-3 sentences of clear strategic reasoning citing specific numbers. Be direct.
 
-Context on each action:
-- EXECUTE: stay the course, market still growing
-- PIVOT: change product direction, product-market fit has failed
-- RESEARCH: signals are contradictory, gather data before deciding
-- FUNDRAISE: runway is low but traction is strong
-- HIRE: growth phase, need more velocity
-- CUT_COSTS: survival mode, extend runway aggressively
-- SELL: acqui-hire exit, better than bankruptcy"""
+Actions:
+- EXECUTE: stay the course
+- PIVOT: change product direction (costs 3 months runway)
+- RESEARCH: reduce signal noise before deciding
+- FUNDRAISE: raise from investors (check milestones first)
+- HIRE: add headcount — raises burn, may boost velocity
+- CUT_COSTS: reduce burn — survival mode
+- SELL: acqui-hire exit
+- LAUNCH_FEATURE: ship product feature — improves PMF or adds tech debt
+- MARKETING_CAMPAIGN: run campaign — only effective if PMF > 40%
+- SET_PRICING: adjust pricing tier
+- FIRE: layoff — saves burn but causes 3-month morale hangover
+- PARTNERSHIP: channel deal — reduces CAC, boosts pipeline in 2 months"""
 
 
 def _load_model_background(model_id: str):
@@ -161,8 +169,8 @@ def _load_scenario(name: str | None) -> dict | None:
 # ── Create openenv-core app (handles /reset /step /state /ws /schema) ─────
 app = create_app(
     ThePivotEnvironment,
-    PivotAction,
-    PivotObservation,
+    CoFounderAction if 'CoFounderAction' in dir() else PivotAction,
+    CoFounderObservation if 'CoFounderObservation' in dir() else PivotObservation,
     env_name="the_pivot",
     max_concurrent_envs=4,
 )
@@ -245,16 +253,16 @@ def compare_baselines(scenario: str = Query(default="b2c_saas"), n_episodes: int
     sys.path.insert(0, str(pathlib.Path(__file__).parent.parent))
     os.environ["WANDB_MODE"] = "disabled"
     try:
-        from training.baseline_agent import RandomAgent, StubbornAgent, PanicAgent, run_episodes
+        from training.baseline_agent import RandomAgent, StubbornAgent, PanicAgent, StrategistAgent, run_episodes
     except ImportError:
-        from training.baseline_agent import RandomAgent, StubbornAgent, PanicAgent, run_episodes  # type: ignore
+        from training.baseline_agent import RandomAgent, StubbornAgent, PanicAgent, StrategistAgent, run_episodes  # type: ignore
 
     sc = _load_scenario(scenario)
     if sc is None:
         return {"error": f"Scenario '{scenario}' not found"}
 
     n_episodes = max(1, min(n_episodes, 50))
-    agents = [RandomAgent(), StubbornAgent(), PanicAgent()]
+    agents = [RandomAgent(), StubbornAgent(), PanicAgent(), StrategistAgent()]
     results = []
     for agent in agents:
         r = run_episodes(agent, sc, n_episodes)
@@ -513,7 +521,15 @@ def chat_endpoint(req: ChatRequest):
 
     # Extract action word from first line
     first_word = response.split()[0].upper().rstrip(".,!:") if response.split() else ""
-    valid_actions = {"EXECUTE", "PIVOT", "RESEARCH", "FUNDRAISE", "HIRE", "CUT_COSTS", "SELL"}
+    valid_actions = {
+        "EXECUTE", "PIVOT", "RESEARCH", "FUNDRAISE", "HIRE", "CUT_COSTS", "SELL",
+        "LAUNCH_FEATURE", "MARKETING_CAMPAIGN", "SET_PRICING", "FIRE", "PARTNERSHIP",
+    }
+    # Also handle "DECISION: ACTION" format
+    for line in response.split("\n"):
+        if line.strip().upper().startswith("DECISION:"):
+            first_word = line.split(":", 1)[1].strip().upper().rstrip(".,!:")
+            break
     action = first_word if first_word in valid_actions else None
 
     return {"response": response, "action": action, "ready": True}

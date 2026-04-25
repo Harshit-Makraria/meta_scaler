@@ -1,30 +1,54 @@
 {
   "name": "b2c_saas",
   "display_name": "B2C SaaS Collapse",
-  "description": "Consumer SaaS hits market saturation as a well-funded competitor launches. Growth window is comfortable but saturation hits hard. Moderate difficulty.",
+  "description": "Consumer SaaS hits market saturation as a well-funded competitor launches. Signals are clear if agent watches complaint shift from 'missing_feature' to 'competitor_is_better'. Moderate difficulty.",
   "difficulty": "easy",
+  "data_sources": [
+    "Vitally.io SaaS Churn Benchmarks 2024 — B2C avg monthly churn 7.5%",
+    "Carta 2024 — median seed burn $85K/mo, median runway 20 months",
+    "CustomerGauge 2025 — B2C SaaS avg NPS 34",
+    "OpenView 2023 — B2C healthy growth 80-90% YoY (~5.5%/mo)"
+  ],
   "initial_state": {
-    "revenue": 45000,
-    "burn_rate": 120000,
-    "runway": 18,
-    "churn_rate": 0.12,
-    "nps": 52
+    "revenue": 37500,
+    "burn_rate": 85000,
+    "runway": 20,
+    "churn_rate": 0.065,
+    "nps": 34,
+    "team_size": 8,
+    "eng_headcount": 4,
+    "sales_headcount": 2,
+    "support_headcount": 2,
+    "pmf_score": 0.55,
+    "tech_debt": 0.12,
+    "team_morale": 0.75,
+    "base_cac": 420,
+    "arpu": 49,
+    "customer_count": 765,
+    "brand_awareness": 0.18,
+    "pipeline": 3
   },
   "phases": {
-    "GROWTH":      { "steps": [0, 20], "revenue_growth_rate": 0.08, "churn_drift": 0.002, "nps_drift": -0.3,  "competitor_activity": 0.05 },
-    "SATURATION":  { "steps": [21, 35], "revenue_growth_rate": 0.01, "churn_drift": 0.008, "nps_drift": -1.8,  "competitor_activity": 0.25 },
-    "DECLINE":     { "steps": [36, 60], "revenue_growth_rate": -0.04, "churn_drift": 0.015, "nps_drift": -3.2,  "competitor_activity": 0.55 }
+    "GROWTH":     { "steps": [0, 20],  "revenue_growth_rate": 0.075, "churn_drift": 0.001, "nps_drift": -0.2,  "competitor_activity": 0.04 },
+    "SATURATION": { "steps": [21, 35], "revenue_growth_rate": 0.015, "churn_drift": 0.007, "nps_drift": -1.5,  "competitor_activity": 0.22 },
+    "DECLINE":    { "steps": [36, 60], "revenue_growth_rate": -0.035,"churn_drift": 0.014, "nps_drift": -3.0,  "competitor_activity": 0.50 }
   },
   "complaint_distributions": {
     "GROWTH":     { "missing_feature": 0.50, "slow_performance": 0.25, "ui_confusing": 0.20, "too_expensive": 0.05 },
     "SATURATION": { "too_expensive": 0.35, "competitor_is_better": 0.30, "missing_feature": 0.25, "slow_performance": 0.10 },
     "DECLINE":    { "competitor_is_better": 0.45, "too_expensive": 0.30, "switching_to_X": 0.15, "missing_feature": 0.10 }
   },
-  "optimal_pivot_window": [39, 46],
+  "optimal_pivot_window": [38, 46],
   "pivot_outcome": {
     "churn_reset": -0.08,
     "nps_drop_on_pivot": -10,
     "revenue_multiplier_after_pivot": 0.60
   },
-  "notes": "Standard scenario. Signals are clear if agent pays attention to complaint shift from 'missing_feature' to 'competitor_is_better'."
+  "real_world_parallel": {
+    "example": "Instagram pivot from Burbn (month 5, 9mo runway) — watched feature usage data",
+    "churn_at_pivot_historically": 0.18,
+    "runway_at_pivot_historically": 9,
+    "outcome": "$1B Facebook acquisition"
+  },
+  "notes": "Standard scenario. Real B2C SaaS churn starts at 6.5% (Vitally.io 2024). Burn $85K/mo matches Carta 2024 seed median. NPS 34 matches CustomerGauge B2C average."
 }

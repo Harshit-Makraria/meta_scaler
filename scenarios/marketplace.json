@@ -1,30 +1,56 @@
 {
   "name": "marketplace",
   "display_name": "Two-Sided Marketplace Squeeze",
-  "description": "A marketplace startup where both sides of the network start fragmenting. Decline comes fast after saturation. Hard difficulty — short window to pivot.",
+  "description": "A marketplace startup where both sides of the network start fragmenting. Decline comes fast after saturation. Hard difficulty — agent must act earlier than in SaaS scenarios.",
   "difficulty": "hard",
+  "data_sources": [
+    "a16z 2022 — marketplace supply-side monthly churn avg 4.0%",
+    "Carta 2024 — marketplace seed burn $120-160K/mo (dual-sided CAC is expensive)",
+    "CustomerGauge 2025 — marketplace avg NPS 32 (always someone unhappy on one side)",
+    "OpenView 2023 — marketplace growth phase can reach 10%/mo when network effects fire",
+    "Benchmarkit 2024 — marketplace CAC payback avg 14 months (dual-sided acquisition)",
+    "CB Insights 2024 — 38% of marketplace failures due to chicken-and-egg liquidity"
+  ],
   "initial_state": {
     "revenue": 38000,
     "burn_rate": 140000,
-    "runway": 15,
-    "churn_rate": 0.18,
-    "nps": 41
+    "runway": 18,
+    "churn_rate": 0.040,
+    "nps": 32,
+    "team_size": 10,
+    "eng_headcount": 4,
+    "sales_headcount": 3,
+    "support_headcount": 3,
+    "pmf_score": 0.52,
+    "tech_debt": 0.18,
+    "team_morale": 0.70,
+    "base_cac": 2200,
+    "arpu": 190,
+    "customer_count": 200,
+    "brand_awareness": 0.22,
+    "pipeline": 3
   },
   "phases": {
-    "GROWTH":      { "steps": [0, 15], "revenue_growth_rate": 0.10, "churn_drift": 0.003, "nps_drift": -0.5,  "competitor_activity": 0.08 },
-    "SATURATION":  { "steps": [16, 28], "revenue_growth_rate": 0.02, "churn_drift": 0.012, "nps_drift": -2.5,  "competitor_activity": 0.30 },
-    "DECLINE":     { "steps": [29, 60], "revenue_growth_rate": -0.06, "churn_drift": 0.020, "nps_drift": -4.0,  "competitor_activity": 0.65 }
+    "GROWTH":     { "steps": [0, 15],  "revenue_growth_rate": 0.100, "churn_drift": 0.002, "nps_drift": -0.5,  "competitor_activity": 0.08 },
+    "SATURATION": { "steps": [16, 28], "revenue_growth_rate": 0.015, "churn_drift": 0.010, "nps_drift": -2.5,  "competitor_activity": 0.28 },
+    "DECLINE":    { "steps": [29, 60], "revenue_growth_rate": -0.050,"churn_drift": 0.018, "nps_drift": -4.0,  "competitor_activity": 0.60 }
   },
   "complaint_distributions": {
     "GROWTH":     { "missing_feature": 0.45, "slow_performance": 0.30, "ui_confusing": 0.25 },
     "SATURATION": { "too_expensive": 0.40, "competitor_is_better": 0.35, "missing_feature": 0.25 },
     "DECLINE":    { "switching_to_X": 0.40, "competitor_is_better": 0.35, "too_expensive": 0.25 }
   },
-  "optimal_pivot_window": [31, 38],
+  "optimal_pivot_window": [30, 38],
   "pivot_outcome": {
-    "churn_reset": -0.10,
+    "churn_reset": -0.012,
     "nps_drop_on_pivot": -8,
     "revenue_multiplier_after_pivot": 0.55
   },
-  "notes": "Hard scenario: shorter runway, faster phase transitions, steeper decline. Agent must act earlier than in b2c_saas."
+  "real_world_parallel": {
+    "example": "Shopify pivot from Snowdevil snowboard store to e-commerce platform (month 16, 11mo runway)",
+    "churn_at_pivot_historically": 0.06,
+    "runway_at_pivot_historically": 11,
+    "outcome": "$100B+ market cap (2021 peak)"
+  },
+  "notes": "Marketplace churn 4%/mo matches a16z supply-side data. Shorter runway (18mo) and faster phase transitions than SaaS. Network effects amplify both growth and decline. Agent must act earlier."
 }

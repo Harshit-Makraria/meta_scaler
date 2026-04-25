@@ -6,3 +6,4 @@ __pycache__/
 tea_debug.log
 package-lock.json
 .claude/
+hf_deploy/

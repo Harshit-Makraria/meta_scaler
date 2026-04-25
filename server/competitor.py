@@ -1,16 +1,19 @@
 """
-CompetitorAgent — rule-based market rival that responds to the startup's weakness.
+CompetitorAgent — reactive market rival that mirrors and counters the startup's moves.
 
-How it works (plain English):
-- The competitor watches NPS, churn, and runway signals (same noisy view the env has).
-- It picks one of four "plays" each step based on thresholds:
-    LAUNCH_FEATURE  — when your NPS is high and they want to match you
-    PRICE_WAR       — when you're burning cash, they undercut on price
-    TALENT_RAID     — when your churn is spiking, they poach your team
-    AGGRESSIVE_MKT  — when market is saturating, they spend on ads
-- Each play has a market_share_steal value (how many % points of your revenue it bleeds).
-- The environment calls competitor.tick(obs_snapshot) each step and reads
-  competitor.market_share_impact to apply a revenue penalty.
+Upgraded from static rule-based plays to a fully REACTIVE agent.
+Per plan.md Section 4:
+  - If the Strategist advises LAUNCH_FEATURE → competitor fast-follows (50% chance next step)
+  - If the Strategist advises HIRE → competitor triggers TALENT_RAID
+  - If the Strategist advises MARKETING_CAMPAIGN → competitor triggers AGGRESSIVE_MKT
+  - If the Strategist advises SET_PRICING (raise) → competitor triggers PRICE_WAR
+  - If the Strategist is pivoting → competitor acquires new users in the vacuum
+
+Underlying logic:
+  The competitor represents a well-funded rival with a 3-person intelligence team
+  that monitors public signals (job postings, press releases, pricing pages).
+  They react with 1-2 month lag — just enough for the startup to gain advantage
+  if they move fast, but punishing if they telegraph moves without executing.
 """
 from __future__ import annotations
 import random
@@ -19,116 +22,149 @@ from enum import Enum
 
 
 class CompetitorPlay(str, Enum):
-    DORMANT        = "dormant"          # no threat this step
-    LAUNCH_FEATURE = "launch_feature"   # copies / one-ups your features
-    PRICE_WAR      = "price_war"        # undercuts pricing → steals price-sensitive users
-    TALENT_RAID    = "talent_raid"      # poaches engineers → slows your execution
-    AGGRESSIVE_MKT = "aggressive_mkt"  # outspends you on marketing
+    DORMANT        = "dormant"
+    LAUNCH_FEATURE = "launch_feature"
+    PRICE_WAR      = "price_war"
+    TALENT_RAID    = "talent_raid"
+    AGGRESSIVE_MKT = "aggressive_mkt"
+    VACUUM_GRAB    = "vacuum_grab"   # NEW: competitor fills pivot vacuum
 
 
 # Revenue steal per play (fraction of monthly_revenue lost)
 _STEAL_RATE: dict[CompetitorPlay, float] = {
     CompetitorPlay.DORMANT:        0.00,
     CompetitorPlay.LAUNCH_FEATURE: 0.03,
-    CompetitorPlay.PRICE_WAR:      0.05,
+    CompetitorPlay.PRICE_WAR:      0.06,
     CompetitorPlay.TALENT_RAID:    0.02,
     CompetitorPlay.AGGRESSIVE_MKT: 0.04,
+    CompetitorPlay.VACUUM_GRAB:    0.08,  # biggest steal: fills your pivot vacuum
 }
 
-# Burn-rate increase per play (competitor actions waste your talent/time)
 _BURN_DELTA: dict[CompetitorPlay, float] = {
     CompetitorPlay.DORMANT:        0.00,
     CompetitorPlay.LAUNCH_FEATURE: 0.01,
     CompetitorPlay.PRICE_WAR:      0.00,
-    CompetitorPlay.TALENT_RAID:    0.03,
+    CompetitorPlay.TALENT_RAID:    0.04,   # recruiting costs rise
     CompetitorPlay.AGGRESSIVE_MKT: 0.00,
+    CompetitorPlay.VACUUM_GRAB:    0.00,
+}
+
+_DESCRIPTIONS: dict[CompetitorPlay, str] = {
+    CompetitorPlay.DORMANT:
+        "Competitor quiet this month.",
+    CompetitorPlay.LAUNCH_FEATURE:
+        "Rival launched a competing feature — users are comparing products.",
+    CompetitorPlay.PRICE_WAR:
+        "Competitor slashes prices to undercut you — price-sensitive users are churning.",
+    CompetitorPlay.TALENT_RAID:
+        "Rival is poaching engineers — your velocity slows and burn ticks up.",
+    CompetitorPlay.AGGRESSIVE_MKT:
+        "Competitor floods paid channels — your CAC is rising, pipeline threatened.",
+    CompetitorPlay.VACUUM_GRAB:
+        "Competitor capitalizes on your pivot — grabbing users you left behind.",
 }
 
 
 @dataclass
 class CompetitorAgent:
     """
-    Rule-based competitor. Call tick() every step with the env's internal snapshot.
-    Then read market_share_impact (revenue fraction to subtract) and burn_impact
-    (burn fraction to add).
+    Reactive competitor. Call notify_agent_action() BEFORE tick() to give it the
+    startup's move so it can react with 1-step lag.
     """
     rng_seed: int = 7
 
-    # readable outputs after each tick()
     current_play: CompetitorPlay = field(default=CompetitorPlay.DORMANT, init=False)
-    market_share_impact: float = field(default=0.0, init=False)  # fraction of revenue stolen
-    burn_impact: float = field(default=0.0, init=False)          # fraction of burn added
-    strength: float = field(default=0.3, init=False)             # grows over time [0, 1]
-    last_play_description: str = field(default="", init=False)
+    market_share_impact: float   = field(default=0.0, init=False)
+    burn_impact: float           = field(default=0.0, init=False)
+    strength: float              = field(default=0.3, init=False)
+    last_play_description: str   = field(default="", init=False)
 
     def __post_init__(self):
-        self._rng = random.Random(self.rng_seed)
-        self._step = 0
+        self._rng   = random.Random(self.rng_seed)
+        self._step  = 0
+        # Queued reaction from last step's agent action (1-step lag)
+        self._queued_reaction: CompetitorPlay | None = None
 
     # ── Main API ──────────────────────────────────────────────────────────────
+
+    def notify_agent_action(self, action_type_value: str) -> None:
+        """
+        Tell the competitor what move the startup just made.
+        Competitor will react next step (1-month intelligence lag).
+        Called BEFORE tick() in the environment step.
+        """
+        reaction_map = {
+            "LAUNCH_FEATURE":     CompetitorPlay.LAUNCH_FEATURE,   # fast-follow 50% of time
+            "HIRE":               CompetitorPlay.TALENT_RAID,        # poach the type of hire
+            "MARKETING_CAMPAIGN": CompetitorPlay.AGGRESSIVE_MKT,    # counter-spend
+            "SET_PRICING":        CompetitorPlay.PRICE_WAR,          # undercut
+            "PIVOT":              CompetitorPlay.VACUUM_GRAB,        # fill the vacuum
+        }
+        if action_type_value in reaction_map:
+            # Not every signal triggers a reaction — depends on strength + RNG
+            prob = 0.35 + self.strength * 0.30   # stronger competitor reacts more reliably
+            if self._rng.random() < prob:
+                self._queued_reaction = reaction_map[action_type_value]
 
     def tick(self, snapshot: dict) -> CompetitorPlay:
         """
         Decide competitor play for this step.
-        snapshot keys used: monthly_revenue, burn_rate, churn_rate, nps_score,
-                            runway_remaining, revenue_delta_3m
+        1. If a queued reaction exists, fire it.
+        2. Otherwise, fall back to signal-based heuristics.
         """
         self._step += 1
-        # Competitor grows stronger over time (simulates funded rival)
-        self.strength = min(1.0, 0.2 + self._step * 0.012)
+        self.strength = min(1.0, 0.20 + self._step * 0.012)
 
-        play = self._choose_play(snapshot)
-        self.current_play = play
+        if self._queued_reaction is not None:
+            play = self._queued_reaction
+            self._queued_reaction = None
+        else:
+            play = self._choose_play(snapshot)
+
+        self.current_play        = play
         self.market_share_impact = _STEAL_RATE[play] * self.strength
-        self.burn_impact = _BURN_DELTA[play] * self.strength
+        self.burn_impact         = _BURN_DELTA[play] * self.strength
         self.last_play_description = _DESCRIPTIONS[play]
         return play
 
     def reset(self):
-        self._step = 0
-        self.current_play = CompetitorPlay.DORMANT
+        self._step               = 0
+        self.current_play        = CompetitorPlay.DORMANT
         self.market_share_impact = 0.0
-        self.burn_impact = 0.0
-        self.strength = 0.3
+        self.burn_impact         = 0.0
+        self.strength            = 0.3
         self.last_play_description = ""
+        self._queued_reaction    = None
 
-    # ── Decision logic ────────────────────────────────────────────────────────
+    # ── Heuristic fallback ────────────────────────────────────────────────────
 
     def _choose_play(self, snap: dict) -> CompetitorPlay:
-        nps        = snap.get("nps_score", 50)
-        churn      = snap.get("churn_rate", 0.12)
-        burn       = snap.get("burn_rate", 120_000)
-        revenue    = snap.get("monthly_revenue", 45_000)
-        runway     = snap.get("runway_remaining", 18)
-        rev_delta  = snap.get("revenue_delta_3m", 0.0)
+        """Signal-based heuristic when no queued reaction. Preserved from v1."""
+        nps       = snap.get("nps_score", 50)
+        churn     = snap.get("churn_rate", 0.12)
+        burn      = snap.get("burn_rate", 120_000)
+        revenue   = snap.get("monthly_revenue", 45_000)
+        runway    = snap.get("runway_remaining", 18)
+        rev_delta = snap.get("revenue_delta_3m", 0.0)
 
-        # Dormancy window: competitor is quiet in early steps
+        # Dormancy in early steps
         if self._step < 8 and self._rng.random() < 0.6:
             return CompetitorPlay.DORMANT
 
         plays: list[tuple[float, CompetitorPlay]] = []
 
-        # PRICE_WAR: when you're burning more than you earn (distressed)
         if burn > revenue * 1.5 or runway < 9:
             plays.append((0.40, CompetitorPlay.PRICE_WAR))
-
-        # TALENT_RAID: when your churn is spiking (team morale low)
         if churn > 0.28:
             plays.append((0.35, CompetitorPlay.TALENT_RAID))
-
-        # LAUNCH_FEATURE: when your NPS is high (they want to close the gap)
         if nps > 55:
             plays.append((0.30, CompetitorPlay.LAUNCH_FEATURE))
-
-        # AGGRESSIVE_MKT: when your revenue growth is slowing
         if rev_delta < 0.05:
             plays.append((0.30, CompetitorPlay.AGGRESSIVE_MKT))
 
-        # Dormant if nothing triggers
         if not plays:
             return CompetitorPlay.DORMANT
 
-        # Weighted random pick
         total = sum(w for w, _ in plays)
         r = self._rng.random() * total
         cumulative = 0.0
@@ -136,19 +172,4 @@ class CompetitorAgent:
             cumulative += weight
             if r < cumulative:
                 return play
-
         return plays[-1][1]
-
-
-_DESCRIPTIONS: dict[CompetitorPlay, str] = {
-    CompetitorPlay.DORMANT:
-        "Competitor quiet this month.",
-    CompetitorPlay.LAUNCH_FEATURE:
-        "Rival launches a competing feature — users are comparing products.",
-    CompetitorPlay.PRICE_WAR:
-        "Competitor slashes prices to undercut you — price-sensitive users are churning.",
-    CompetitorPlay.TALENT_RAID:
-        "Rival is poaching engineers — your velocity slows and burn ticks up.",
-    CompetitorPlay.AGGRESSIVE_MKT:
-        "Competitor floods paid channels — your customer acquisition cost is rising.",
-}

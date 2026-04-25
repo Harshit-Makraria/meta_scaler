@@ -1,30 +1,56 @@
 {
   "name": "fintech",
   "display_name": "Fintech Regulatory Squeeze",
-  "description": "A fintech startup that sees good early growth but faces regulatory headwinds and a dominant bank launching a competing product. Medium-hard difficulty.",
+  "description": "A fintech startup with good early growth facing regulatory headwinds and a bank launching a competing product. Agent must distinguish regulatory cost spikes from real market decline. Medium-hard difficulty.",
   "difficulty": "medium_hard",
+  "data_sources": [
+    "HockeyStack 2024 — FinTech avg monthly churn 2.5-4.5%",
+    "Carta 2024 — FinTech seed burn avg $120K/mo (compliance + engineering overhead)",
+    "CustomerGauge 2025 — FinTech avg NPS 36",
+    "OpenView 2023 — FinTech growth phase 7-9%/mo revenue increase",
+    "Carta 2024 — FinTech seed to Series A takes 971 days (2.7 years) — longest sector",
+    "CB Insights 2024 — 35% of FinTech failures due to regulatory issues"
+  ],
   "initial_state": {
     "revenue": 55000,
-    "burn_rate": 150000,
-    "runway": 16,
-    "churn_rate": 0.09,
-    "nps": 47
+    "burn_rate": 120000,
+    "runway": 20,
+    "churn_rate": 0.025,
+    "nps": 36,
+    "team_size": 9,
+    "eng_headcount": 5,
+    "sales_headcount": 2,
+    "support_headcount": 2,
+    "pmf_score": 0.58,
+    "tech_debt": 0.13,
+    "team_morale": 0.73,
+    "base_cac": 1800,
+    "arpu": 275,
+    "customer_count": 200,
+    "brand_awareness": 0.20,
+    "pipeline": 3
   },
   "phases": {
-    "GROWTH":      { "steps": [0, 18], "revenue_growth_rate": 0.07, "churn_drift": 0.002, "nps_drift": -0.4,  "competitor_activity": 0.06 },
-    "SATURATION":  { "steps": [19, 32], "revenue_growth_rate": 0.01, "churn_drift": 0.009, "nps_drift": -2.2,  "competitor_activity": 0.28 },
-    "DECLINE":     { "steps": [33, 60], "revenue_growth_rate": -0.05, "churn_drift": 0.016, "nps_drift": -3.8,  "competitor_activity": 0.60 }
+    "GROWTH":     { "steps": [0, 18],  "revenue_growth_rate": 0.075, "churn_drift": 0.001, "nps_drift": -0.4,  "competitor_activity": 0.06 },
+    "SATURATION": { "steps": [19, 32], "revenue_growth_rate": 0.012, "churn_drift": 0.008, "nps_drift": -2.0,  "competitor_activity": 0.25 },
+    "DECLINE":    { "steps": [33, 60], "revenue_growth_rate": -0.040,"churn_drift": 0.015, "nps_drift": -3.5,  "competitor_activity": 0.55 }
   },
   "complaint_distributions": {
-    "GROWTH":     { "missing_feature": 0.40, "onboarding_too_hard": 0.30, "slow_performance": 0.20, "pricing_unclear": 0.10 },
-    "SATURATION": { "too_expensive": 0.35, "pricing_unclear": 0.25, "competitor_is_better": 0.25, "missing_feature": 0.15 },
+    "GROWTH":     { "onboarding_too_hard": 0.40, "missing_feature": 0.30, "slow_performance": 0.20, "pricing_unclear": 0.10 },
+    "SATURATION": { "pricing_unclear": 0.30, "too_expensive": 0.30, "competitor_is_better": 0.25, "missing_feature": 0.15 },
     "DECLINE":    { "competitor_is_better": 0.40, "too_expensive": 0.35, "cant_export_data": 0.15, "switching_to_X": 0.10 }
   },
-  "optimal_pivot_window": [35, 42],
+  "optimal_pivot_window": [35, 43],
   "pivot_outcome": {
-    "churn_reset": -0.06,
+    "churn_reset": -0.008,
     "nps_drop_on_pivot": -9,
     "revenue_multiplier_after_pivot": 0.58
   },
-  "notes": "Regulatory environment means complaints about pricing and onboarding early on. Agent must distinguish regulatory noise from real market shift."
+  "real_world_parallel": {
+    "example": "Stripe pivot from consumer social payments to developer API (month 12, 10mo runway)",
+    "churn_at_pivot_historically": 0.08,
+    "runway_at_pivot_historically": 10,
+    "outcome": "$95B valuation (2021)"
+  },
+  "notes": "FinTech churn 2.5%/mo = real blended rate (HockeyStack 2024). Burn $120K/mo matches Carta FinTech median. Regulatory complaints in GROWTH are noise — agent must not over-react. Real danger is in DECLINE."
 }
