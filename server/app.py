@@ -73,6 +73,10 @@ class CounterfactualRequest(BaseModel):
     pivot_at_step: int            # Simulate PIVOT at this specific step
     n_steps_ahead: int = 20       # How many steps to simulate after the pivot
 
+class DemoRequest(BaseModel):
+    scenario: str = "b2c_saas"
+    seed: int = 42
+
 
 def _load_scenario(name: str | None) -> dict | None:
     if not name or name == "default":
@@ -304,6 +308,69 @@ def counterfactual_endpoint(req: CounterfactualRequest):
         "survived": obs.runway_remaining > 0,
         "final_runway": obs.runway_remaining,
         "trajectory": trajectory,
+    }
+
+
+@app.post("/demo")
+def demo_endpoint(req: DemoRequest):
+    """
+    Run a full 60-step episode using the rule-based advisor as the agent.
+    Returns step-by-step trajectory: action taken, reasoning, reward, runway, revenue.
+    Used by the Live Demo tab in the UI.
+    """
+    from models import ActionType
+
+    sc = _load_scenario(req.scenario)
+    if sc is None:
+        return {"error": f"Scenario '{req.scenario}' not found"}
+
+    env = ThePivotEnvironment(scenario=sc, rng_seed=req.seed)
+    obs = env.reset()
+    trajectory = []
+    total_reward = 0.0
+    pivot_steps = []
+
+    for step in range(60):
+        # Build advisor request from current observation
+        adv_req = AdvisorRequest(
+            mrr=obs.monthly_revenue,
+            burn=obs.burn_rate,
+            runway=obs.runway_remaining,
+            nps=obs.nps_score,
+            churn=obs.churn_rate,
+            step=step,
+        )
+        action_str, reasoning = _rule_based_advice(adv_req)
+
+        obs = env.step(PivotAction(action_type=ActionType(action_str)))
+        reward = obs.reward or 0.0
+        total_reward += reward
+
+        if action_str == "PIVOT":
+            pivot_steps.append(step + 1)
+
+        trajectory.append({
+            "step":      step + 1,
+            "action":    action_str,
+            "reasoning": reasoning[:80],   # truncate for UI display
+            "reward":    round(reward, 1),
+            "runway":    obs.runway_remaining,
+            "revenue":   round(obs.monthly_revenue),
+            "nps":       obs.nps_score,
+            "churn":     round(obs.churn_rate * 100, 1),
+            "done":      obs.done,
+        })
+        if obs.done:
+            break
+
+    return {
+        "scenario":     req.scenario,
+        "seed":         req.seed,
+        "total_reward": round(total_reward, 1),
+        "survived":     obs.runway_remaining > 0,
+        "steps":        len(trajectory),
+        "pivot_steps":  pivot_steps,
+        "trajectory":   trajectory,
     }
 
 

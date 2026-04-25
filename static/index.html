@@ -406,7 +406,57 @@
   </div>
 </div>
 
-<!-- Row 5: Compare Baselines -->
+<!-- Row 5: Live Demo -->
+<div class="grid-full" style="margin-bottom:20px">
+  <div class="card card-purple">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+      <div>
+        <div class="card-title" style="margin-bottom:4px">🤖 Live Demo — Watch the Agent Play</div>
+        <div style="font-size:12px;color:var(--muted)">Runs a full 60-month episode using the rule-based advisor. See every decision + reasoning.</div>
+      </div>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <select class="ctrl-select" id="demo-scenario" style="font-size:11px;padding:6px 10px">
+          <option value="b2c_saas">B2C SaaS (Easy)</option>
+          <option value="enterprise_saas">Enterprise SaaS (Medium)</option>
+          <option value="fintech">Fintech (Medium-Hard)</option>
+          <option value="marketplace">Marketplace (Hard)</option>
+          <option value="consumer_app">Consumer App (Very Hard)</option>
+        </select>
+        <input id="demo-seed" type="number" value="42" min="1" max="9999"
+          style="width:80px;background:#111;border:1px solid #333;color:#aaa;padding:6px 10px;border-radius:5px;font-family:'Space Mono',monospace;font-size:12px" placeholder="seed">
+        <button class="ctrl-btn primary" id="demo-btn" style="padding:8px 18px;font-size:12px" onclick="runDemo()">▶ Run Demo</button>
+      </div>
+    </div>
+
+    <div id="demo-status" style="font-size:12px;color:var(--muted);margin-bottom:12px">Pick a scenario and click Run Demo.</div>
+
+    <div id="demo-result" style="display:none">
+      <!-- Summary cards -->
+      <div id="demo-summary" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px"></div>
+
+      <!-- Step table -->
+      <div style="overflow-x:auto;max-height:380px;overflow-y:auto">
+        <table style="width:100%;border-collapse:collapse;font-family:'Space Mono',monospace;font-size:11px">
+          <thead style="position:sticky;top:0;background:#0d0d0d;z-index:1">
+            <tr style="color:var(--muted);border-bottom:1px solid #222;text-align:left">
+              <th style="padding:6px 8px">Month</th>
+              <th style="padding:6px 8px">Action</th>
+              <th style="padding:6px 8px;text-align:right">Reward</th>
+              <th style="padding:6px 8px;text-align:right">Runway</th>
+              <th style="padding:6px 8px;text-align:right">Revenue</th>
+              <th style="padding:6px 8px;text-align:right">Churn</th>
+              <th style="padding:6px 8px;text-align:right">NPS</th>
+              <th style="padding:6px 8px">Reasoning</th>
+            </tr>
+          </thead>
+          <tbody id="demo-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Row 6: Compare Baselines -->
 <div class="grid-full" style="margin-bottom:40px">
   <div class="card card-accent">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
@@ -879,6 +929,74 @@ async function runCounterfactual() {
     tb.innerHTML += `<tr style="border-bottom:1px solid #111;${p?'background:#1a1000':''}"><td style="padding:5px 6px;color:${p?'#ffaa00':'#aaa'}">${row.step}${p?' ⭐':''}</td><td style="padding:5px 6px;font-family:'Space Mono',monospace;color:${p?'#ffaa00':'#666'}">${row.action}</td><td style="padding:5px 6px;text-align:right;color:${row.reward>=0?'var(--accent)':'var(--danger)'}">${(row.reward||0).toFixed(1)}</td><td style="padding:5px 6px;text-align:right;color:#aaa">${row.runway}mo</td><td style="padding:5px 6px;text-align:right;color:#666">$${(row.revenue/1000).toFixed(0)}k</td></tr>`;
   });
   document.getElementById('cf-result').style.display='block';
+}
+
+// ── Live Demo ─────────────────────────────────────────────────────────────
+async function runDemo() {
+  const btn = document.getElementById('demo-btn');
+  btn.textContent = 'Running...'; btn.disabled = true;
+  document.getElementById('demo-status').textContent = 'Simulating 60 months...';
+  document.getElementById('demo-result').style.display = 'none';
+
+  const body = {
+    scenario: document.getElementById('demo-scenario').value,
+    seed: parseInt(document.getElementById('demo-seed').value) || 42,
+  };
+
+  try {
+    const res = await fetch('/demo', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
+    if (!res.ok) throw new Error(await res.text());
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+
+    // Summary cards
+    const pivotStr = data.pivot_steps.length ? `Month ${data.pivot_steps.join(', ')}` : 'Never';
+    document.getElementById('demo-summary').innerHTML = `
+      <div style="background:#0a0a0a;border:1px solid #222;border-top:2px solid var(--purple);border-radius:8px;padding:14px">
+        <div style="font-size:10px;color:var(--muted);margin-bottom:6px">TOTAL REWARD</div>
+        <div style="font-size:24px;font-weight:700;font-family:'Space Mono',monospace;color:${data.total_reward>=0?'var(--accent)':'var(--danger)'}">${data.total_reward>0?'+':''}${data.total_reward}</div>
+      </div>
+      <div style="background:#0a0a0a;border:1px solid #222;border-top:2px solid var(--blue);border-radius:8px;padding:14px">
+        <div style="font-size:10px;color:var(--muted);margin-bottom:6px">OUTCOME</div>
+        <div style="font-size:20px;font-weight:700">${data.survived ? '✅ Survived' : '💀 Bankrupt'}</div>
+      </div>
+      <div style="background:#0a0a0a;border:1px solid #222;border-top:2px solid var(--warn);border-radius:8px;padding:14px">
+        <div style="font-size:10px;color:var(--muted);margin-bottom:6px">PIVOT AT</div>
+        <div style="font-size:16px;font-weight:700;font-family:'Space Mono',monospace;color:var(--warn)">${pivotStr}</div>
+      </div>
+      <div style="background:#0a0a0a;border:1px solid #222;border-top:2px solid #aaa;border-radius:8px;padding:14px">
+        <div style="font-size:10px;color:var(--muted);margin-bottom:6px">MONTHS SURVIVED</div>
+        <div style="font-size:24px;font-weight:700;font-family:'Space Mono',monospace">${data.steps}<span style="font-size:14px;color:var(--muted)">/60</span></div>
+      </div>`;
+
+    // Step table
+    const tb = document.getElementById('demo-tbody');
+    tb.innerHTML = '';
+    data.trajectory.forEach(row => {
+      const isPivot = row.action === 'PIVOT';
+      const isCut   = row.action === 'CUT_COSTS';
+      const actionColor = isPivot ? 'var(--warn)' : isCut ? 'var(--danger)' : row.action === 'EXECUTE' ? '#666' : 'var(--blue)';
+      const rColor = row.reward >= 0 ? 'var(--accent)' : 'var(--danger)';
+      tb.innerHTML += `
+        <tr style="border-bottom:1px solid #111;${isPivot ? 'background:#1a1000;' : ''}">
+          <td style="padding:5px 8px;color:${isPivot?'var(--warn)':'#555'}">${row.step}${isPivot?' ⭐':''}</td>
+          <td style="padding:5px 8px;font-weight:700;color:${actionColor}">${row.action}</td>
+          <td style="padding:5px 8px;text-align:right;color:${rColor}">${row.reward >= 0 ? '+' : ''}${row.reward}</td>
+          <td style="padding:5px 8px;text-align:right;color:${row.runway<6?'var(--danger)':row.runway<12?'var(--warn)':'#aaa'}">${row.runway}mo</td>
+          <td style="padding:5px 8px;text-align:right;color:#aaa">$${(row.revenue/1000).toFixed(0)}k</td>
+          <td style="padding:5px 8px;text-align:right;color:${row.churn>15?'var(--danger)':row.churn>10?'var(--warn)':'#666'}">${row.churn}%</td>
+          <td style="padding:5px 8px;text-align:right;color:${row.nps<10?'var(--danger)':row.nps<30?'var(--warn)':'var(--accent)'}">${row.nps}</td>
+          <td style="padding:5px 8px;color:#555;font-size:10px;max-width:240px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">${row.reasoning}</td>
+        </tr>`;
+    });
+
+    document.getElementById('demo-status').textContent =
+      `Done! ${data.steps} months simulated on scenario: ${data.scenario}`;
+    document.getElementById('demo-result').style.display = 'block';
+  } catch(e) {
+    document.getElementById('demo-status').textContent = 'Error: ' + e.message;
+  }
+  btn.textContent = '▶ Run Demo'; btn.disabled = false;
 }
 
 async function loadLeaderboard() {
