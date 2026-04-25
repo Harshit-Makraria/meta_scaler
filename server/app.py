@@ -28,7 +28,8 @@ except ModuleNotFoundError:
 
 import server.wandb_logger as wlog
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, List
+import threading
 
 SCENARIOS_DIR = pathlib.Path(__file__).parent.parent / "scenarios"
 STATIC_DIR    = pathlib.Path(__file__).parent.parent / "static"
@@ -47,6 +48,67 @@ _last_obs: PivotObservation | None = None
 
 # ── In-memory leaderboard (resets on server restart) ─────────────────────
 _leaderboard: list[dict] = []
+
+# ── Trained model (loaded lazily if MODEL_ID env var is set) ──────────────
+_chat_model      = None
+_chat_tokenizer  = None
+_model_status    = "not_configured"   # not_configured | loading | ready | error
+_model_error     = ""
+
+SYSTEM_PROMPT = """You are a startup co-founder AI trained with reinforcement learning to navigate hidden market phase shifts. You help founders decide when to pivot before it's too late.
+
+When given startup metrics, you MUST start your reply with exactly one of these action words on its own line:
+EXECUTE / PIVOT / RESEARCH / FUNDRAISE / HIRE / CUT_COSTS / SELL
+
+Then give 2-3 sentences of clear strategic reasoning. Be direct — founders need fast decisions.
+
+Context on each action:
+- EXECUTE: stay the course, market still growing
+- PIVOT: change product direction, product-market fit has failed
+- RESEARCH: signals are contradictory, gather data before deciding
+- FUNDRAISE: runway is low but traction is strong
+- HIRE: growth phase, need more velocity
+- CUT_COSTS: survival mode, extend runway aggressively
+- SELL: acqui-hire exit, better than bankruptcy"""
+
+
+def _load_model_background(model_id: str):
+    """Load the trained LoRA model in a background thread so server stays responsive."""
+    global _chat_model, _chat_tokenizer, _model_status, _model_error
+    try:
+        _model_status = "loading"
+        import torch
+        from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
+        from peft import PeftModel
+
+        base_id = os.getenv("BASE_MODEL_ID", "Qwen/Qwen2.5-1.5B-Instruct")
+        device  = "cuda" if __import__("torch").cuda.is_available() else "cpu"
+
+        _chat_tokenizer = AutoTokenizer.from_pretrained(model_id, trust_remote_code=True)
+        _chat_tokenizer.pad_token = _chat_tokenizer.eos_token
+
+        load_kwargs = {"device_map": "auto", "trust_remote_code": True}
+        if device == "cuda":
+            load_kwargs["quantization_config"] = BitsAndBytesConfig(
+                load_in_4bit=True, bnb_4bit_quant_type="nf4",
+                bnb_4bit_compute_dtype=__import__("torch").bfloat16,
+            )
+        else:
+            load_kwargs["torch_dtype"] = __import__("torch").float32
+
+        base = AutoModelForCausalLM.from_pretrained(base_id, **load_kwargs)
+        _chat_model   = PeftModel.from_pretrained(base, model_id)
+        _chat_model.eval()
+        _model_status = "ready"
+    except Exception as e:
+        _model_status = "error"
+        _model_error  = str(e)
+
+
+# Start loading model in background if MODEL_ID env var is set
+_MODEL_ID = os.getenv("MODEL_ID", "")
+if _MODEL_ID:
+    threading.Thread(target=_load_model_background, args=(_MODEL_ID,), daemon=True).start()
 
 
 # ── Request models ─────────────────────────────────────────────────────────
@@ -76,6 +138,14 @@ class CounterfactualRequest(BaseModel):
 class DemoRequest(BaseModel):
     scenario: str = "b2c_saas"
     seed: int = 42
+
+class ChatMessage(BaseModel):
+    role: str    # "user" or "assistant"
+    content: str
+
+class ChatRequest(BaseModel):
+    message: str
+    history: List[ChatMessage] = []
 
 
 def _load_scenario(name: str | None) -> dict | None:
@@ -372,6 +442,75 @@ def demo_endpoint(req: DemoRequest):
         "pivot_steps":  pivot_steps,
         "trajectory":   trajectory,
     }
+
+
+@app.get("/model/status")
+def model_status():
+    """Check whether the trained LoRA model is loaded and ready for chat."""
+    return {
+        "status":     _model_status,
+        "model_id":   _MODEL_ID or None,
+        "error":      _model_error or None,
+        "configured": bool(_MODEL_ID),
+    }
+
+
+@app.post("/chat")
+def chat_endpoint(req: ChatRequest):
+    """
+    Chat with the trained startup advisor model.
+    Requires MODEL_ID env var set and model loaded (check /model/status first).
+    Maintains multi-turn conversation history.
+    """
+    if _model_status == "not_configured":
+        return {
+            "response": "⚠️ Model not configured. Set the MODEL_ID environment variable in your HF Space secrets to enable this feature.",
+            "action": None, "ready": False,
+        }
+    if _model_status == "loading":
+        return {
+            "response": "⏳ Model is still loading (this takes 1-2 minutes on first start). Try again shortly.",
+            "action": None, "ready": False,
+        }
+    if _model_status == "error":
+        return {
+            "response": f"❌ Model failed to load: {_model_error}",
+            "action": None, "ready": False,
+        }
+
+    import torch
+
+    # Build message list for chat template
+    messages = [{"role": "system", "content": SYSTEM_PROMPT}]
+    for h in req.history[-6:]:          # last 3 turns (6 messages)
+        messages.append({"role": h.role, "content": h.content})
+    messages.append({"role": "user", "content": req.message})
+
+    text = _chat_tokenizer.apply_chat_template(
+        messages, tokenize=False, add_generation_prompt=True
+    )
+    inputs = _chat_tokenizer(text, return_tensors="pt", truncation=True,
+                             max_length=1024).to(_chat_model.device)
+
+    with torch.no_grad():
+        out = _chat_model.generate(
+            **inputs,
+            max_new_tokens=200,
+            do_sample=True,
+            temperature=0.7,
+            top_p=0.9,
+            pad_token_id=_chat_tokenizer.eos_token_id,
+        )
+    response = _chat_tokenizer.decode(
+        out[0][inputs["input_ids"].shape[1]:], skip_special_tokens=True
+    ).strip()
+
+    # Extract action word from first line
+    first_word = response.split()[0].upper().rstrip(".,!:") if response.split() else ""
+    valid_actions = {"EXECUTE", "PIVOT", "RESEARCH", "FUNDRAISE", "HIRE", "CUT_COSTS", "SELL"}
+    action = first_word if first_word in valid_actions else None
+
+    return {"response": response, "action": action, "ready": True}
 
 
 def main(host: str = "0.0.0.0", port: int = 8000):

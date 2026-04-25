@@ -406,6 +406,43 @@
   </div>
 </div>
 
+<!-- Chat Panel -->
+<div class="grid-full" style="margin-bottom:20px" id="chat-section">
+  <div class="card" style="border-top:2px solid var(--purple)">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+      <div>
+        <div class="card-title" style="margin-bottom:4px">💬 Chat with the Trained Model</div>
+        <div style="font-size:12px;color:var(--muted)">Ask the RL-trained startup advisor anything. Describe your metrics — it tells you what to do.</div>
+      </div>
+      <div id="model-status-badge" style="font-size:11px;padding:5px 12px;border-radius:4px;font-family:'Space Mono',monospace;background:#111;border:1px solid #333;color:#666">
+        checking...
+      </div>
+    </div>
+
+    <!-- Chat messages -->
+    <div id="chat-messages" style="background:#050505;border:1px solid #1a1a1a;border-radius:6px;min-height:200px;max-height:360px;overflow-y:auto;padding:16px;margin-bottom:12px;display:flex;flex-direction:column;gap:12px">
+      <div id="chat-welcome" style="color:#444;font-size:12px;font-family:'Space Mono',monospace;text-align:center;margin:auto">
+        🤖 Model is loading... or type your first message below.<br>
+        <span style="font-size:10px;color:#333">Example: "Month 38, MRR $62k, burn $95k, runway 11mo, NPS 18, churn 22%. Competitor just cut prices."</span>
+      </div>
+    </div>
+
+    <!-- Input row -->
+    <div style="display:flex;gap:10px">
+      <input id="chat-input" type="text"
+        placeholder='e.g. "Month 38, MRR $62k, burn $95k, runway 11mo, NPS 18, churn 22%..."'
+        style="flex:1;background:#111;border:1px solid #333;color:#ddd;padding:12px 14px;border-radius:6px;font-size:13px;font-family:'Inter',sans-serif;outline:none"
+        onkeydown="if(event.key==='Enter')sendChat()"
+      />
+      <button class="ctrl-btn primary" id="chat-send-btn" onclick="sendChat()" style="padding:12px 24px;white-space:nowrap">Send ↵</button>
+      <button class="ctrl-btn secondary" onclick="clearChat()" style="padding:12px 16px">Clear</button>
+    </div>
+    <div style="font-size:11px;color:#333;margin-top:8px">
+      💡 Tip: Include month, MRR, burn, runway, NPS, churn for best advice. The model was trained on 5 startup scenarios over 150 episodes.
+    </div>
+  </div>
+</div>
+
 <!-- Row 5: Live Demo -->
 <div class="grid-full" style="margin-bottom:20px">
   <div class="card card-purple">
@@ -930,6 +967,91 @@ async function runCounterfactual() {
   });
   document.getElementById('cf-result').style.display='block';
 }
+
+// ── Chat ──────────────────────────────────────────────────────────────────
+let chatHistory = [];
+
+async function checkModelStatus() {
+  try {
+    const data = await fetch('/model/status').then(r => r.json());
+    const badge = document.getElementById('model-status-badge');
+    if (!data.configured) {
+      badge.textContent = '⚪ No model configured';
+      badge.style.color = '#555'; badge.style.borderColor = '#333';
+    } else if (data.status === 'loading') {
+      badge.textContent = '⏳ Model loading...';
+      badge.style.color = 'var(--warn)'; badge.style.borderColor = 'var(--warn)';
+      setTimeout(checkModelStatus, 5000);   // recheck in 5s
+    } else if (data.status === 'ready') {
+      badge.textContent = '🟢 Model ready';
+      badge.style.color = 'var(--accent)'; badge.style.borderColor = 'var(--accent)';
+      document.getElementById('chat-welcome').innerHTML =
+        '🤖 <b style="color:var(--accent)">Model ready!</b> Describe your startup situation to get a strategic recommendation.';
+    } else if (data.status === 'error') {
+      badge.textContent = '🔴 Model error';
+      badge.style.color = 'var(--danger)'; badge.style.borderColor = 'var(--danger)';
+    }
+  } catch {}
+}
+
+function appendChatMessage(role, text, action) {
+  const wrap = document.getElementById('chat-messages');
+  document.getElementById('chat-welcome').style.display = 'none';
+  const div = document.createElement('div');
+  div.style.cssText = `max-width:85%;padding:12px 16px;border-radius:8px;font-size:13px;line-height:1.6;word-break:break-word;`;
+
+  if (role === 'user') {
+    div.style.cssText += 'align-self:flex-end;background:#111;border:1px solid #222;color:#ccc;';
+    div.textContent = text;
+  } else {
+    const actionColors = {PIVOT:'var(--warn)',CUT_COSTS:'var(--danger)',SELL:'var(--danger)',EXECUTE:'var(--muted)',RESEARCH:'var(--blue)',FUNDRAISE:'var(--accent)',HIRE:'var(--accent)'};
+    const color = action ? (actionColors[action] || 'var(--purple)') : 'var(--purple)';
+    div.style.cssText += `align-self:flex-start;background:#0a0a0a;border:1px solid #1e1e1e;border-left:3px solid ${color};color:#ddd;`;
+    if (action) {
+      div.innerHTML = `<span style="font-family:'Space Mono',monospace;font-size:12px;font-weight:700;color:${color};display:block;margin-bottom:6px">→ ${action}</span>${text.replace(action, '').trim()}`;
+    } else {
+      div.textContent = text;
+    }
+  }
+  wrap.appendChild(div);
+  wrap.scrollTop = wrap.scrollHeight;
+}
+
+async function sendChat() {
+  const input = document.getElementById('chat-input');
+  const msg   = input.value.trim();
+  if (!msg) return;
+
+  input.value = '';
+  appendChatMessage('user', msg, null);
+  document.getElementById('chat-send-btn').disabled = true;
+  document.getElementById('chat-send-btn').textContent = '...';
+
+  const body = { message: msg, history: chatHistory };
+  try {
+    const data = await fetch('/chat', {
+      method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body)
+    }).then(r => r.json());
+
+    appendChatMessage('assistant', data.response, data.action);
+    chatHistory.push({ role: 'user', content: msg });
+    chatHistory.push({ role: 'assistant', content: data.response });
+    if (chatHistory.length > 12) chatHistory = chatHistory.slice(-12);  // keep last 6 turns
+  } catch(e) {
+    appendChatMessage('assistant', '❌ Error: ' + e.message, null);
+  }
+  document.getElementById('chat-send-btn').disabled = false;
+  document.getElementById('chat-send-btn').textContent = 'Send ↵';
+  input.focus();
+}
+
+function clearChat() {
+  chatHistory = [];
+  const wrap = document.getElementById('chat-messages');
+  wrap.innerHTML = '<div id="chat-welcome" style="color:#444;font-size:12px;font-family:\'Space Mono\',monospace;text-align:center;margin:auto">Chat cleared. Type a message to start again.</div>';
+}
+
+checkModelStatus();
 
 // ── Live Demo ─────────────────────────────────────────────────────────────
 async function runDemo() {
