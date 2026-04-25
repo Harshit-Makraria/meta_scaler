@@ -41,17 +41,21 @@ DIFFICULTY_LADDER: list[str] = [
     "consumer_app",    # tier 5 — very hard
 ]
 
-# Reward threshold to unlock the next tier
+# Reward threshold to unlock the next tier.
+# Raised from the original loose thresholds (-50, -120, -80, -40) which caused
+# the curriculum to advance on lucky random episodes (e.g. Tier 2 at ep 20, Tier 3 at ep 45)
+# before the model had actually learned anything. The model must prove consistent
+# positive mean reward AND healthy survival rate to unlock the next tier.
 UNLOCK_THRESHOLDS: list[float] = [
-    -50.0,    # advance from tier 1 when mean_reward > -50
-    -120.0,   # advance from tier 2
-    -80.0,    # advance from tier 3
-    -40.0,    # advance from tier 4 (hardest gate)
+    +30.0,    # Tier 1 → 2: mean_reward > +30 (model must reliably survive b2c_saas)
+    -20.0,    # Tier 2 → 3: mean_reward > -20 (enterprise_saas is harder, negative ok)
+    +10.0,    # Tier 3 → 4: mean_reward > +10 (fintech, must be net positive)
+    +40.0,    # Tier 4 → 5: mean_reward > +40 (marketplace, strong survival needed)
 ]
 
 WINDOW_SIZE = 20              # episodes to average before deciding to advance
-SURVIVAL_GATE = 0.30          # must survive at least 30% of recent episodes
-MAX_EPISODES_PER_TIER = 40    # force advance after this many episodes even if thresholds not met
+SURVIVAL_GATE = 0.45          # must survive ≥ 45% of recent episodes (was 30% — too easy)
+MAX_EPISODES_PER_TIER = 60    # give model more time on each tier before force-advancing (was 40)
 
 
 @dataclass
