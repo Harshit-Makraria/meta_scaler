@@ -2,21 +2,22 @@
 
 ## 📋 Table of Contents
 
-1. The Problem — A Gap No Benchmark Tests
-2. The Solution — Overview
-3. Environment Features
-4. A Single Episode — 60 Steps
-5. Reward Model
-6. Real-World Impact & Use Cases
-7. Innovation
-8. Training Setup & Details
-9. Results & Evidence of Real Training
-10. Links
-11. Step-by-Step Guide
+1. Hackathon Theme Alignment
+2. The Problem — A Gap No Benchmark Tests
+3. The Solution — Overview
+4. Environment Features
+5. A Single Episode — 60 Steps
+6. Reward Model
+7. Real-World Impact & Use Cases
+8. Innovation
+9. Training Setup & Details
+10. Results & Evidence of Real Training
+11. Links
+12. Step-by-Step Guide
 
 ---
 
-## Hackathon Theme Alignment
+## 1. Hackathon Theme Alignment
 
 This project primarily targets **Theme 2** and strongly touches three other themes:
 
@@ -30,11 +31,11 @@ Agent maintains a persistent internal model of 6 dynamically interacting busines
 5-tier adaptive curriculum: harder scenarios unlock only when the agent proves competence on easier ones. 20% of episodes replay prior tiers to prevent forgetting. GRPO enables the agent to improve from its own episode history.
 
 #### 🤝 Theme 1 — Multi-Agent Interactions · Touches
-Three rule-based NPCs (Co-Founder, Investor, Competitor) actively respond to the LLM's decisions — creating emergent pressure and surprise events. The trained agent is a single LLM, not a multi-LLM system.
+Three rule-based NPCs (Founder, Investor, Competitor) actively respond to the LLM's decisions — creating emergent pressure and surprise events. The trained agent is a single LLM, not a multi-LLM system.
 
 ---
 
-## 1. The Problem — A Gap No Benchmark Tests
+## 2. The Problem — A Gap No Benchmark Tests
 
 Every LLM agent benchmark in existence tests whether a model can **execute a known plan** in a sterile environment. None of them test whether a model can **advise a human founder through complex, multi-year strategic uncertainty**. 
 
@@ -57,7 +58,7 @@ Consider how real startups die when founders lack expert strategic advice:
 
 ---
 
-## 2. The Solution — Overview
+## 3. The Solution — Overview
 
 **The Pivot** is a 60-month startup simulation built as a fully [OpenEnv](https://pypi.org/project/openenv-core/)-compliant environment. An LLM agent acts as the founding CEO, making one strategic decision per month from **12 possible actions**. The market silently progresses through three hidden phases — GROWTH → SATURATION → DECLINE — at scenario-dependent timing that is never revealed.
 
@@ -83,7 +84,7 @@ The trained model must beat a **rule-based StrategistAgent** — an expert CEO f
 
 ---
 
-## 3. Environment Features
+## 4. Environment Features
 
 ### 12 Strategic Actions
 
@@ -135,7 +136,7 @@ The agent receives a richly structured prompt including: `runway_remaining`, `mo
 
 ---
 
-## 4. A Single Episode — 60 Steps
+## 5. A Single Episode — 60 Steps
 
 ```
 EPISODE START ─── env.reset(scenario, seed) → initial observation
@@ -171,7 +172,7 @@ EPISODE END — triggered by any of:
 
 ---
 
-## 5. Reward Model
+## 6. Reward Model
 
 The reward signal is a **multi-dimensional balanced scorecard** — designed to be impossible to game with a single-axis strategy:
 
@@ -232,7 +233,7 @@ Only a **balanced, timed strategy** scores well across all 8 dimensions simultan
 
 ---
 
-## 6. Real-World Impact & Use Cases
+## 7. Real-World Impact & Use Cases
 
 ### 1. 🚀 Startup Founders — Direct Application
 The trained model powers an **Advisor Mode** on the live HF Space. Paste your real MRR, burn rate, NPS, and churn → get a specific strategic recommendation with reasoning. This is the first RL-trained startup advisor that learned from simulated consequences, not just internet text.
@@ -257,7 +258,7 @@ Run scenario simulations before real resource allocation decisions. The environm
 
 ---
 
-## 7. Innovation
+## 8. Innovation
 
 ### What Has Never Been Done
 
@@ -281,7 +282,7 @@ The closest existing work is economic multi-agent markets (OpenAI Hide-and-Seek)
 
 ---
 
-## 8. Training Setup & Details
+## 9. Training Setup & Details
 
 ### Model Architecture
 
@@ -376,7 +377,7 @@ Agent:  DECISION: cut_costs
 
 ---
 
-## 9. Results & Evidence of Real Training
+## 10. Results & Evidence of Real Training
 
 ### Training Run Summary
 
@@ -424,7 +425,7 @@ Agent:  DECISION: cut_costs
 
 ---
 
-## 10. Links
+## 11. Links
 
 | Resource | URL |
 |----------|-----|
@@ -441,7 +442,7 @@ Agent:  DECISION: cut_costs
 
 ---
 
-## 11. Step-by-Step Guide
+## 12. Step-by-Step Guide
 
 ### Prerequisites
 ```bash
