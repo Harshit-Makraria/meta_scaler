@@ -433,13 +433,13 @@ Agent:  DECISION: cut_costs
 
 #### Fig A — Colab Live Output (Tier 1 → Tier 3 progression)
 
-![Colab Training Logs](https://raw.githubusercontent.com/Harshit-Makraria/meta_scaler/main/docs/blog/training-colab.png)
+![Colab Training Logs](https://github.com/Harshit-Makraria/meta_scaler/raw/main/docs/blog/training-colab.png)
 
 *Live cell output from `train_colab.ipynb` on a Colab T4. Visible here: episodes 57–80 progressing through the curriculum. At episode 60, the agent advances `Tier 1 → Tier 2: enterprise_saas`. Checkpoint auto-saves to Google Drive at `/content/drive/MyDrive/the_pivot_model/checkpoint_ep60`. Through Tier 2 we see survival rates climb dramatically — most enterprise_saas episodes reach the 60-step ceiling with positive rewards (Ep 65/80: reward +1123.4, Ep 76/80: reward +679.1). At episode 80 the agent advances again to **Tier 3: fintech** — proof the adaptive curriculum is working. GPU memory holds steady at 4.1GB throughout; no OOM, no instability.*
 
 #### Fig B — W&B Run Dashboard
 
-![W&B Training Run](https://raw.githubusercontent.com/Harshit-Makraria/meta_scaler/main/docs/blog/training-wandb.png)
+![W&B Training Run](https://github.com/Harshit-Makraria/meta_scaler/raw/main/docs/blog/training-wandb.png)
 
 *Live run `grpo-qwen1.5b-cofounder-v2` on the W&B project `models-nexica-ai`. Logs view shows the same training stream captured server-side at `wandb.ai/models-nexica-ai/...`. Each row records: episode number, scenario, tier, steps survived, episode reward, 20-ep moving mean, GRPO loss, KL penalty, exploration epsilon (0.59 → decays), pivot count, action diversity, survival flag, and GPU memory. Survival starts mixed (Ep 5/80: died at step 49, Ep 6/80: died at step 14), then stabilises (Ep 10/80 onwards: SURVIVED, full 60 steps). KL stays small (≤0.014), confirming the policy isn't drifting too far from the reference model.*
 
@@ -449,19 +449,19 @@ Agent:  DECISION: cut_costs
 
 #### Fig 1 — Reward Curve
 
-![Reward Curve](https://raw.githubusercontent.com/Harshit-Makraria/meta_scaler/main/docs/plots/reward_curve.png)
+![Reward Curve](https://github.com/Harshit-Makraria/meta_scaler/raw/main/docs/plots/reward_curve.png)
 
 *Reward per episode over 80 training steps. Blue: per-episode reward. Solid line: 10-episode moving average. The reward climbs from consistently negative (agent always executes, runs out of runway) toward positive (agent survives, pivots at appropriate times). The oscillation is expected in GRPO — entropy naturally decays as the policy concentrates.*
 
 #### Fig 2 — Loss Curve
 
-![Loss Curve](https://raw.githubusercontent.com/Harshit-Makraria/meta_scaler/main/docs/plots/loss_curve.png)
+![Loss Curve](https://github.com/Harshit-Makraria/meta_scaler/raw/main/docs/plots/loss_curve.png)
 
 *GRPO policy loss over training. Initial high loss reflects the agent exploring (high entropy). Loss decreases as the policy concentrates on better strategies. The shape confirms gradient flow is working — a flat loss curve at 0 would indicate a broken training loop.*
 
 #### Fig 3 — Survival Curve
 
-![Survival Curve](https://raw.githubusercontent.com/Harshit-Makraria/meta_scaler/main/docs/plots/survival_curve.png)
+![Survival Curve](https://github.com/Harshit-Makraria/meta_scaler/raw/main/docs/plots/survival_curve.png)
 
 *Steps survived per episode (max = 60). Early episodes: agent frequently dies before step 30 (executing into decline). Later episodes: agent survives longer, approaching the 60-step ceiling. This is the most direct evidence that training improved strategic behaviour.*
 
@@ -473,13 +473,13 @@ The dashboard's **Analytics** tab renders the actual training metrics in real ti
 
 #### Fig 4 — `unique_actions`, `survived`, `reward_baseline`
 
-![Analytics Row 1](https://raw.githubusercontent.com/Harshit-Makraria/meta_scaler/main/docs/blog/analytics-1.png)
+![Analytics Row 1](https://github.com/Harshit-Makraria/meta_scaler/raw/main/docs/blog/analytics-1.png)
 
 *Top row of the Analytics tab. **unique_actions** (left) shows the agent using 7–9 different actions per episode by late training — full diversity, no policy collapse. **survived** (middle) is the binary survival flag: late episodes consistently hit 1. **reward_baseline** (right) is the running reward baseline used by GRPO for advantage calculation — climbs from −250 to +100 as training progresses.*
 
 #### Fig 5 — `pivot_count`, `mean_reward_20ep`, `loss`
 
-![Analytics Row 2](https://raw.githubusercontent.com/Harshit-Makraria/meta_scaler/main/docs/blog/analytics-2.png)
+![Analytics Row 2](https://github.com/Harshit-Makraria/meta_scaler/raw/main/docs/blog/analytics-2.png)
 
 *Bottom row of the Analytics tab. **pivot_count** (left) drops from 3–4 panic pivots per episode in early training to ~1 strategically-timed pivot by the end. **mean_reward_20ep** (middle) is the 20-episode moving average — the sharp uptick after step ~60 is the moment the policy converges on the balanced strategy. **loss** (right) decays from ~8 to ~5 as the policy concentrates.*
 
@@ -491,13 +491,13 @@ The trained LoRA powers the **AI Advisor** tab. Two modes share the same underly
 
 #### Chat Mode
 
-![AI Advisor — Chat](https://raw.githubusercontent.com/Harshit-Makraria/meta_scaler/main/docs/blog/advisor-chat.png)
+![AI Advisor — Chat](https://github.com/Harshit-Makraria/meta_scaler/raw/main/docs/blog/advisor-chat.png)
 
 *Chat with the trained model directly. The status pill (`🟢 Trained model online`) confirms the LoRA is loaded. Right panel: One-Click Advisor — paste your real metrics (MRR, burn, runway, NPS), get a recommendation cited against your specific numbers. The **Action Probabilities** bar chart shows the agent's distribution over the 12 actions for the current observation.*
 
 #### Demo Mode
 
-![AI Advisor — Auto-Play Demo](https://raw.githubusercontent.com/Harshit-Makraria/meta_scaler/main/docs/blog/advisor-demo.png)
+![AI Advisor — Auto-Play Demo](https://github.com/Harshit-Makraria/meta_scaler/raw/main/docs/blog/advisor-demo.png)
 
 *Demo mode auto-plays a full 60-month episode month-by-month so you can watch the trained agent reason. Each row in the feed: month label, action taken (color-coded), reward, runway, and the agent's natural-language reasoning ("Strong NPS (52), decent unit economics (burn 1.3x). This is a growth-mode signal."). The agent in this run scored a +48.2 reward at month 8 by correctly recognising a growth-phase signal.*
 
