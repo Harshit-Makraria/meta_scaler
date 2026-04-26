@@ -1,28 +1,13 @@
----
-title: FounderOS — CoFounder Strategist
-emoji: 🔄
-colorFrom: blue
-colorTo: purple
-sdk: docker
-app_port: 7860
-pinned: false
-license: mit
-tags:
-  - openenv
-  - reinforcement-learning
-  - rl-environment
-  - startup-simulation
-  - grpo
-  - meta-pytorch-hackathon-2026
----
-
 # 🔄 FounderOS — CoFounder Strategist
+
+> **An RL-trained LLM that learns to be a startup co-founder by actually running 80 simulated companies.**
+> Built for the **Meta PyTorch OpenEnv Hackathon 2026** · Calibrated on real industry data from Carta, OpenView, CB Insights, CustomerGauge, a16z, Gainsight, and HockeyStack.
 
 ## 📋 Table of Contents
 
 1. The Problem — A Gap No Benchmark Tests
 2. The Solution — Overview
-3. Hackathon Theme Alignment
+3. **Built on Real-World Data** ← new
 4. Environment Features
 5. A Single Episode — 60 Steps
 6. Reward Model
@@ -32,6 +17,24 @@ tags:
 10. Results & Evidence of Real Training
 11. Links
 12. Step-by-Step Guide
+
+---
+
+## Hackathon Theme Alignment
+
+This project primarily targets **Theme 2** and strongly touches three other themes:
+
+#### 🗺️ Theme 2 — Long-Horizon Planning · ⭐ Primary
+60-month simulation with sparse delayed rewards. The agent must decompose strategy, track state over an entire company lifecycle, and recover from early mistakes. A PIVOT in month 40 depends on decisions made in month 12.
+
+#### 🌍 Theme 3.1 — World Modeling (Professional) · Strong
+Agent maintains a persistent internal model of 6 dynamically interacting business subsystems in a partially observable world. Hidden market phases must be inferred from noisy signals — no oracle, no shortcuts.
+
+#### 🔁 Theme 4 — Self-Improvement · Supporting
+5-tier adaptive curriculum: harder scenarios unlock only when the agent proves competence on easier ones. 20% of episodes replay prior tiers to prevent forgetting. GRPO enables the agent to improve from its own episode history.
+
+#### 🤝 Theme 1 — Multi-Agent Interactions · Touches
+Three rule-based NPCs (Co-Founder, Investor, Competitor) actively respond to the LLM's decisions — creating emergent pressure and surprise events. The trained agent is a single LLM, not a multi-LLM system.
 
 ---
 
@@ -84,21 +87,36 @@ The trained model must beat a **rule-based StrategistAgent** — an expert CEO f
 
 ---
 
-## 3. Hackathon Theme Alignment
+## 3. Built on Real-World Data
 
-This project primarily targets **Theme 2** and strongly touches three other themes:
+**FounderOS isn't a toy spreadsheet — every parameter the agent trains against is calibrated from published industry benchmarks.** The five scenarios that the agent learns from are not synthetic. Each one is grounded in real data from named sources, so the policy the LLM converges on is shaped by *how startups actually fail*, not by parameters someone made up.
 
-#### 🗺️ Theme 2 — Long-Horizon Planning · ⭐ Primary
-60-month simulation with sparse delayed rewards. The agent must decompose strategy, track state over an entire company lifecycle, and recover from early mistakes. A PIVOT in month 40 depends on decisions made in month 12.
+### Where the numbers come from
 
-#### 🌍 Theme 3.1 — World Modeling (Professional) · Strong
-Agent maintains a persistent internal model of 6 dynamically interacting business subsystems in a partially observable world. Hidden market phases must be inferred from noisy signals — no oracle, no shortcuts.
+| Scenario | Real-World Data Sources |
+|----------|------------------------|
+| **B2C SaaS Collapse** | Vitally.io 2024 (B2C avg monthly churn 7.5%) · Carta 2024 (median seed burn $85K/mo, runway 20mo) · CustomerGauge 2025 (B2C SaaS avg NPS 34) · OpenView 2023 (healthy growth 80–90% YoY) |
+| **Enterprise SaaS** | Gainsight 2023 (enterprise B2B monthly churn ~0.8%) · Carta 2024 (enterprise seed burn $150–180K/mo) · Doran 2024 (B2B SaaS avg NPS 41, top quartile 60+) · OpenView 2023–2024 (B2B at $1–5M ARR grows 25–35% YoY) · Crunchbase 2024 (median runway 20mo) |
+| **Fintech Regulatory** | HockeyStack 2024 (FinTech monthly churn 2.5–4.5%) · Carta 2024 (FinTech seed burn $120K/mo) · CustomerGauge 2025 (FinTech NPS 36) · OpenView 2023 (growth phase 7–9%/mo) · Carta 2024 (seed → Series A takes 971 days, longest sector) · CB Insights 2024 (35% of failures from regulatory issues) |
+| **Marketplace Squeeze** | a16z 2022 (supply-side monthly churn 4.0%) · Carta 2024 (marketplace seed burn $120–160K/mo) · CustomerGauge 2025 (marketplace NPS 32) · OpenView 2023 (growth phase up to 10%/mo with network effects) · Benchmarkit 2024 (CAC payback avg 14mo) · CB Insights 2024 (38% of failures from chicken-and-egg liquidity) |
+| **Consumer App Viral Decay** | Vitally.io 2024 (viral consumer churn 12–22%/mo) · Carta 2024 (consumer seed burn $85–100K/mo) · CustomerGauge 2025 (consumer NPS 30) · OpenView 2023 (peak viral growth 14%/mo) · CB Insights 2024 (47% of failures from trend decay without retention) · Failory 2024 (3-yr survival rate ~18%) |
 
-#### 🔁 Theme 4 — Self-Improvement · Supporting
-5-tier adaptive curriculum: harder scenarios unlock only when the agent proves competence on easier ones. 20% of episodes replay prior tiers to prevent forgetting. GRPO enables the agent to improve from its own episode history.
+### Why this matters for training quality
 
-#### 🤝 Theme 1 — Multi-Agent Interactions · Touches
-Three rule-based NPCs (Founder, Investor, Competitor) actively respond to the LLM's decisions — creating emergent pressure and surprise events. The trained agent is a single LLM, not a multi-LLM system.
+A model trained on synthetic numbers learns to game the synthesis. A model trained against real industry distributions learns the actual structure of startup failure — which is what makes the policy generalisable to founders' real decisions.
+
+The **phase change timing** in each scenario also reflects real timelines: Consumer App phase change at month 23 mirrors Twitter's pivot from Odeo (~18 months, $44B outcome). Marketplace at month 29 matches typical two-sided take-rate compression patterns. Fintech at month 33 reflects the empirically-observed regulatory-shock window in licensed financial products.
+
+The agent's observation prompt embeds these benchmarks directly:
+
+```
+MARKET
+  Churn         22.0%  ↑ rising   [benchmark: 5-8% healthy]
+  NPS           18     ↓ 3mo low  [benchmark: 40+ healthy]
+  PMF score     0.41              [benchmark: 0.6+ = product-market fit]
+```
+
+This is how the trained LoRA ends up giving advice that cites your actual numbers — *"churn at 22% is well above the 5–8% healthy band, runway at 8 months is critical, cut costs first to extend before considering a pivot"* — rather than generic startup platitudes.
 
 ---
 
@@ -154,7 +172,7 @@ The agent receives a richly structured prompt including: `runway_remaining`, `mo
 
 ---
 
-## 5. A Single Episode — 60 Steps
+## 4. A Single Episode — 60 Steps
 
 ```
 EPISODE START ─── env.reset(scenario, seed) → initial observation
@@ -190,7 +208,7 @@ EPISODE END — triggered by any of:
 
 ---
 
-## 6. Reward Model
+## 5. Reward Model
 
 The reward signal is a **multi-dimensional balanced scorecard** — designed to be impossible to game with a single-axis strategy:
 
@@ -251,7 +269,7 @@ Only a **balanced, timed strategy** scores well across all 8 dimensions simultan
 
 ---
 
-## 7. Real-World Impact & Use Cases
+## 6. Real-World Impact & Use Cases
 
 ### 1. 🚀 Startup Founders — Direct Application
 The trained model powers an **Advisor Mode** on the live HF Space. Paste your real MRR, burn rate, NPS, and churn → get a specific strategic recommendation with reasoning. This is the first RL-trained startup advisor that learned from simulated consequences, not just internet text.
@@ -276,7 +294,7 @@ Run scenario simulations before real resource allocation decisions. The environm
 
 ---
 
-## 8. Innovation
+## 7. Innovation
 
 ### What Has Never Been Done
 
@@ -300,7 +318,7 @@ The closest existing work is economic multi-agent markets (OpenAI Hide-and-Seek)
 
 ---
 
-## 9. Training Setup & Details
+## 8. Training Setup & Details
 
 ### Model Architecture
 
@@ -313,11 +331,10 @@ Trainable   : ~3M parameters (0.2% of total)
 VRAM usage  : ~5 GB active / 15 GB available on T4
 ```
 
-### Two Training Paths
+### Training Path
 
 | Notebook | Algorithm | Time | Recommended |
 |----------|-----------|------|-------------|
-| [`train_trl.ipynb`](training/train_trl.ipynb) | **HF TRL GRPOTrainer** | ~60–90 min | ✅ Yes — official, batched |
 | [`train_colab.ipynb`](training/train_colab.ipynb) | Custom GRPO | ~90–120 min | For reference |
 
 ### Curriculum (5 Tiers)
@@ -395,9 +412,9 @@ Agent:  DECISION: cut_costs
 
 ---
 
-## 10. Results & Evidence of Real Training
+## 9. Results & Evidence of Real Training
 
-### Training Run Summary
+### 9.1 Training Run Summary
 
 | Metric | Early (ep 1–20) | Mid (ep 30–50) | Late (ep 60–80) |
 |--------|-----------------|-----------------|------------------|
@@ -408,28 +425,85 @@ Agent:  DECISION: cut_costs
 | Pivot count per episode | 3–4 (panic pivoting) | 1–2 (learning restraint) | **0–1** (strategic timing) |
 | GRPO loss | 8–10 (high entropy) | 5–7 (concentrating) | **4–5** (stable convergence) |
 
-> *80-episode custom GRPO run on Qwen2.5-0.5B-Instruct with QLoRA on T4 GPU. The agent transitions from panic-pivoting and bankruptcy to strategic, balanced decision-making with near-full survival.*
+> *80-episode custom GRPO run on **Qwen2.5-1.5B-Instruct** with QLoRA on T4 GPU. The agent transitions from panic-pivoting and bankruptcy to strategic, balanced decision-making with near-full survival.*
 
-### Fig 1 — Reward Curve
+---
 
-![Reward Curve](docs/plots/reward_curve.png)
+### 9.2 Raw Training Logs — Proof It Actually Ran
+
+#### Fig A — Colab Live Output (Tier 1 → Tier 3 progression)
+
+![Colab Training Logs](https://raw.githubusercontent.com/Harshit-Makraria/meta_scaler/main/docs/blog/training-colab.png)
+
+*Live cell output from `train_colab.ipynb` on a Colab T4. Visible here: episodes 57–80 progressing through the curriculum. At episode 60, the agent advances `Tier 1 → Tier 2: enterprise_saas`. Checkpoint auto-saves to Google Drive at `/content/drive/MyDrive/the_pivot_model/checkpoint_ep60`. Through Tier 2 we see survival rates climb dramatically — most enterprise_saas episodes reach the 60-step ceiling with positive rewards (Ep 65/80: reward +1123.4, Ep 76/80: reward +679.1). At episode 80 the agent advances again to **Tier 3: fintech** — proof the adaptive curriculum is working. GPU memory holds steady at 4.1GB throughout; no OOM, no instability.*
+
+#### Fig B — W&B Run Dashboard
+
+![W&B Training Run](https://raw.githubusercontent.com/Harshit-Makraria/meta_scaler/main/docs/blog/training-wandb.png)
+
+*Live run `grpo-qwen1.5b-cofounder-v2` on the W&B project `models-nexica-ai`. Logs view shows the same training stream captured server-side at `wandb.ai/models-nexica-ai/...`. Each row records: episode number, scenario, tier, steps survived, episode reward, 20-ep moving mean, GRPO loss, KL penalty, exploration epsilon (0.59 → decays), pivot count, action diversity, survival flag, and GPU memory. Survival starts mixed (Ep 5/80: died at step 49, Ep 6/80: died at step 14), then stabilises (Ep 10/80 onwards: SURVIVED, full 60 steps). KL stays small (≤0.014), confirming the policy isn't drifting too far from the reference model.*
+
+---
+
+### 9.3 Training Curves
+
+#### Fig 1 — Reward Curve
+
+![Reward Curve](https://raw.githubusercontent.com/Harshit-Makraria/meta_scaler/main/docs/plots/reward_curve.png)
 
 *Reward per episode over 80 training steps. Blue: per-episode reward. Solid line: 10-episode moving average. The reward climbs from consistently negative (agent always executes, runs out of runway) toward positive (agent survives, pivots at appropriate times). The oscillation is expected in GRPO — entropy naturally decays as the policy concentrates.*
 
-### Fig 2 — Loss Curve
+#### Fig 2 — Loss Curve
 
-![Loss Curve](docs/plots/loss_curve.png)
+![Loss Curve](https://raw.githubusercontent.com/Harshit-Makraria/meta_scaler/main/docs/plots/loss_curve.png)
 
 *GRPO policy loss over training. Initial high loss reflects the agent exploring (high entropy). Loss decreases as the policy concentrates on better strategies. The shape confirms gradient flow is working — a flat loss curve at 0 would indicate a broken training loop.*
 
-### Fig 3 — Survival Curve
+#### Fig 3 — Survival Curve
 
-![Survival Curve](docs/plots/survival_curve.png)
+![Survival Curve](https://raw.githubusercontent.com/Harshit-Makraria/meta_scaler/main/docs/plots/survival_curve.png)
 
 *Steps survived per episode (max = 60). Early episodes: agent frequently dies before step 30 (executing into decline). Later episodes: agent survives longer, approaching the 60-step ceiling. This is the most direct evidence that training improved strategic behaviour.*
 
+---
 
-### Trained LLM vs. Baselines
+### 9.4 Live Analytics — 6 W&B-Style Charts
+
+The dashboard's **Analytics** tab renders the actual training metrics in real time, served from `docs/plots/metrics.json` and the live W&B run history.
+
+#### Fig 4 — `unique_actions`, `survived`, `reward_baseline`
+
+![Analytics Row 1](https://raw.githubusercontent.com/Harshit-Makraria/meta_scaler/main/docs/blog/analytics-1.png)
+
+*Top row of the Analytics tab. **unique_actions** (left) shows the agent using 7–9 different actions per episode by late training — full diversity, no policy collapse. **survived** (middle) is the binary survival flag: late episodes consistently hit 1. **reward_baseline** (right) is the running reward baseline used by GRPO for advantage calculation — climbs from −250 to +100 as training progresses.*
+
+#### Fig 5 — `pivot_count`, `mean_reward_20ep`, `loss`
+
+![Analytics Row 2](https://raw.githubusercontent.com/Harshit-Makraria/meta_scaler/main/docs/blog/analytics-2.png)
+
+*Bottom row of the Analytics tab. **pivot_count** (left) drops from 3–4 panic pivots per episode in early training to ~1 strategically-timed pivot by the end. **mean_reward_20ep** (middle) is the 20-episode moving average — the sharp uptick after step ~60 is the moment the policy converges on the balanced strategy. **loss** (right) decays from ~8 to ~5 as the policy concentrates.*
+
+---
+
+### 9.5 AI Advisor — Chat & Demo Modes
+
+The trained LoRA powers the **AI Advisor** tab. Two modes share the same underlying model:
+
+#### Chat Mode
+
+![AI Advisor — Chat](https://raw.githubusercontent.com/Harshit-Makraria/meta_scaler/main/docs/blog/advisor-chat.png)
+
+*Chat with the trained model directly. The status pill (`🟢 Trained model online`) confirms the LoRA is loaded. Right panel: One-Click Advisor — paste your real metrics (MRR, burn, runway, NPS), get a recommendation cited against your specific numbers. The **Action Probabilities** bar chart shows the agent's distribution over the 12 actions for the current observation.*
+
+#### Demo Mode
+
+![AI Advisor — Auto-Play Demo](https://raw.githubusercontent.com/Harshit-Makraria/meta_scaler/main/docs/blog/advisor-demo.png)
+
+*Demo mode auto-plays a full 60-month episode month-by-month so you can watch the trained agent reason. Each row in the feed: month label, action taken (color-coded), reward, runway, and the agent's natural-language reasoning ("Strong NPS (52), decent unit economics (burn 1.3x). This is a growth-mode signal."). The agent in this run scored a +48.2 reward at month 8 by correctly recognising a growth-phase signal.*
+
+---
+
+### 9.6 Trained LLM vs. Baselines
 
 | Agent | Mean Reward | Survival Rate | Strategy |
 |-------|------------|---------------|----------|
@@ -439,28 +513,25 @@ Agent:  DECISION: cut_costs
 | **StrategistAgent** | **+3.4** | **62%** | **Rule-based expert (target to beat)** |
 | **Trained LLM** | **+4.1** | **67%** | **RL-trained on 5 scenarios** |
 
-*Trained LLM outperforms the rule-based StrategistAgent on mean reward and survival — confirming it learned genuine nuance beyond programmed heuristics.*
+*Trained LLM outperforms the rule-based StrategistAgent on both mean reward and survival — confirming it learned genuine nuance beyond programmed heuristics. Try it yourself in the live demo at [the HF Space](https://huggingface.co/spaces/Harshit-Makraria/the-pivot).*
 
 ---
 
-## 11. Links
+## 10. Links
 
 | Resource | URL |
 |----------|-----|
 | 🤗 **Live HF Space** | https://huggingface.co/spaces/Harshit-Makraria/the-pivot |
-| 💻 **GitHub Repository** | https://github.com/Harshit-Makraria/meta_scaler |
-| 🎓 **TRL Training Notebook** | [`training/train_trl.ipynb`](training/train_trl.ipynb) |
-| 🔧 **Custom GRPO Notebook** | [`training/train_colab.ipynb`](training/train_colab.ipynb) |
-| 📊 **W&B Training Run** | *(link to be added after on-site compute run)* |
-| 📝 **HF Mini-Blog** | *(link to be added — post to HF community)* |
-| 🎬 **Demo Video** | *(link to be added — <2 min YouTube)* |
-| 📑 **Slide Deck / PPT** | *(link to be added)* |
-| 🏆 **Trained LoRA (TRL)** | https://huggingface.co/Harshit-Makraria/the-pivot-lora-trl |
+
+| 🔧 **Custom GRPO Notebook** | https://colab.research.google.com/drive/1O291Q3b2EfYRAlgvygMN080pMWhln8yh?usp=sharing |
+
+| 📝 **HF Mini-Blog** | https://huggingface.co/spaces/Harshit-Makraria/the-pivot/blob/main/BLOG.md |
+
 | 🏆 **Trained LoRA (custom)** | https://huggingface.co/Harshit-Makraria/the-pivot-lora |
 
 ---
 
-## 12. Step-by-Step Guide
+## 11. Step-by-Step Guide
 
 ### Prerequisites
 ```bash
@@ -524,7 +595,6 @@ print(result.done)
    - **Cell 10** — 🔥 **TRAIN** (5-tier curriculum, ~60–90 min)
    - **Cell 12** — Push LoRA to HF Hub *(run before Cell 11 to safe-save)*
    - **Cell 11** — Save to Drive + close W&B
-   - **Cell 13** — Demo: watch trained agent play all 5 scenarios
 
 ### 4. Connect Trained Model to HF Space
 
@@ -533,7 +603,7 @@ After Cell 12 pushes to HF Hub:
 2. **Variables and secrets** → Add new secret:
    ```
    Name:  MODEL_ID
-   Value: Harshit-Makraria/the-pivot-lora-trl
+   Value: Harshit-Makraria/the-pivot-lora
    ```
 3. **Hardware** → Upgrade to **T4 small** (model needs GPU inference)
 4. **Factory reboot** — the chat panel goes live in ~2 minutes
@@ -618,4 +688,3 @@ from openenv.core import EnvClient    # ✅ uses OpenEnv client
 ---
 
 *Built for the Meta PyTorch OpenEnv Hackathon 2026 · Scaler × PyTorch · Bangalore · April 25–26*
-*Author: Harshit Makraria · [GitHub](https://github.com/Harshit-Makraria/meta_scaler) · [HF Space](https://huggingface.co/spaces/Harshit-Makraria/the-pivot)*
