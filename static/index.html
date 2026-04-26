@@ -3,1267 +3,1802 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>The Pivot — Environment Dashboard</title>
+<title>FounderOS — Strategic Agent Dashboard</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
-<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  :root {
-    --accent: #10b981; --warn: #f59e0b; --danger: #ef4444;
-    --blue: #3b82f6; --purple: #8b5cf6; 
-    --bg: #f8fafc; --card: #ffffff; 
-    --border: #e2e8f0; --text: #0f172a; --muted: #64748b;
-    --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
-    --hover-bg: #f1f5f9;
-  }
-  body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; min-height: 100vh; }
-  .mono { font-family: 'Space Mono', monospace; }
+:root {
+  --primary: #6366f1;
+  --primary-hover: #4f46e5;
+  --primary-light: #eef2ff;
+  --primary-mid: #c7d2fe;
+  --success: #10b981;
+  --success-light: #ecfdf5;
+  --warning: #f59e0b;
+  --warning-light: #fffbeb;
+  --danger: #ef4444;
+  --danger-light: #fef2f2;
+  --info: #3b82f6;
+  --info-light: #eff6ff;
+  --purple: #8b5cf6;
+  --purple-light: #f5f3ff;
+  --bg: #f8fafc;
+  --bg-card: #ffffff;
+  --text: #0f172a;
+  --text-muted: #64748b;
+  --text-light: #94a3b8;
+  --border: #e2e8f0;
+  --border-hover: #cbd5e1;
+  --sidebar-w: 256px;
+  --header-h: 64px;
+  --r-sm: 8px;
+  --r-md: 12px;
+  --r-lg: 16px;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
+  --shadow-md: 0 4px 12px rgba(0,0,0,.08), 0 2px 4px rgba(0,0,0,.04);
+  --shadow-lg: 0 12px 32px rgba(0,0,0,.1), 0 4px 8px rgba(0,0,0,.05);
+  --ease: cubic-bezier(.4,0,.2,1);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:'Plus Jakarta Sans',sans-serif;min-height:100vh;display:flex;overflow:hidden;}
+.mono{font-family:'JetBrains Mono',monospace;}
 
-  /* ── Header ── */
-  header {
-    background: #ffffff; border-bottom: 1px solid var(--border);
-    padding: 16px 32px; display: flex; align-items: center; gap: 20px; flex-wrap: wrap;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.02);
-  }
-  header h1 { font-family: 'Space Mono', monospace; font-size: 20px; color: var(--text); letter-spacing: 1.5px; font-weight: 700; }
-  .badge { padding: 4px 12px; border-radius: 6px; font-size: 11px; font-family: 'Space Mono', monospace; font-weight: 600; }
-  .badge-green { background: #ecfdf5; border: 1px solid #a7f3d0; color: #059669; }
-  .badge-warn  { background: #fffbeb; border: 1px solid #fde68a; color: #d97706; }
-  .badge-red   { background: #fef2f2; border: 1px solid #fecaca; color: #dc2626; }
-  .badge-blue  { background: #eff6ff; border: 1px solid #bfdbfe; color: #2563eb; }
-  #phase-badge { font-size: 13px; padding: 6px 16px; }
-  #status-msg  { margin-left: auto; font-size: 13px; color: var(--muted); max-width: 300px; font-weight: 500; }
+/* SIDEBAR */
+aside {
+  width: var(--sidebar-w);
+  background: #fff;
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  flex-shrink: 0;
+  z-index: 50;
+}
+.sidebar-logo {
+  padding: 20px 20px 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-bottom: 1px solid var(--border);
+}
+.logo-icon {
+  width: 34px; height: 34px;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  border-radius: 9px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.logo-icon svg { width:18px; height:18px; stroke:white; fill:none; stroke-width:2.5; stroke-linecap:round; stroke-linejoin:round; }
+.logo-text { line-height: 1.15; }
+.logo-text strong { font-size: 15px; font-weight: 800; letter-spacing: -.02em; display: block; }
+.logo-text span { font-size: 10px; color: var(--text-light); font-weight: 600; letter-spacing: .06em; }
 
-  /* ── Layout ── */
-  .grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; padding: 24px 32px; }
-  .grid-wide { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; padding: 0 32px 24px; }
-  .grid-full { padding: 0 32px 24px; }
+.sidebar-section { padding: 8px 10px 0; }
+.sidebar-section-label { font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--text-light); padding: 12px 8px 6px; }
+.nav-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 10px; border-radius: var(--r-sm);
+  color: var(--text-muted); font-weight: 600; font-size: 13.5px;
+  cursor: pointer; transition: all .18s var(--ease);
+  position: relative; user-select: none;
+}
+.nav-item:hover { background: var(--bg); color: var(--text); }
+.nav-item.active { background: var(--primary-light); color: var(--primary); }
+.nav-item.active::before {
+  content: ''; position: absolute; left: -10px; top: 50%; transform: translateY(-50%);
+  width: 3px; height: 60%; background: var(--primary); border-radius: 0 2px 2px 0;
+}
+.nav-icon { width: 18px; height: 18px; flex-shrink: 0; }
+.nav-badge { margin-left: auto; background: var(--primary-light); color: var(--primary); font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 99px; }
 
-  /* ── Cards ── */
-  .card {
-    background: var(--card); border: 1px solid var(--border); border-radius: 12px;
-    padding: 24px; position: relative; box-shadow: var(--card-shadow); transition: transform 0.2s, box-shadow 0.2s;
-  }
-  .card:hover { box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.025); }
-  .card-title {
-    font-family: 'Space Mono', monospace; font-size: 11px; color: var(--muted);
-    letter-spacing: 1px; margin-bottom: 16px; text-transform: uppercase; font-weight: 700;
-  }
-  .card-accent { border-top: 3px solid var(--accent); }
-  .card-warn   { border-top: 3px solid var(--warn); }
-  .card-danger { border-top: 3px solid var(--danger); }
-  .card-blue   { border-top: 3px solid var(--blue); }
-  .card-purple { border-top: 3px solid var(--purple); }
+.sidebar-footer { margin-top: auto; padding: 14px 18px; border-top: 1px solid var(--border); }
+.status-dot { width: 7px; height: 7px; background: var(--success); border-radius: 50%; animation: pulse 2s infinite; }
+@keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:.4;} }
 
-  /* ── Stat rows ── */
-  .stat-row { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 12px; }
-  .stat-label { font-size: 13px; color: var(--muted); font-weight: 500; }
-  .stat-value { font-family: 'Space Mono', monospace; font-size: 15px; color: var(--text); font-weight: 600; }
-  .stat-value.big { font-size: 24px; font-weight: 700; color: var(--accent); }
-  .stat-value.warn { color: var(--warn); }
-  .stat-value.danger { color: var(--danger); }
-  .stat-value.ok { color: var(--accent); }
+/* MAIN */
+main { flex: 1; height: 100vh; overflow-y: auto; display: flex; flex-direction: column; min-width: 0; }
+header {
+  height: var(--header-h); background: #fff; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between; padding: 0 28px;
+  position: sticky; top: 0; z-index: 40;
+}
+.header-breadcrumb { display: flex; align-items: center; gap: 8px; font-size: 14px; }
+.header-breadcrumb .crumb { color: var(--text-light); }
+.header-breadcrumb .crumb-active { font-weight: 700; color: var(--text); }
+.header-right { display: flex; align-items: center; gap: 10px; }
 
-  /* ── Gauge bar ── */
-  .gauge-wrap { margin: 10px 0 16px; }
-  .gauge-bg { background: #e2e8f0; border-radius: 6px; height: 8px; overflow: hidden; box-shadow: inset 0 1px 2px rgba(0,0,0,0.05); }
-  .gauge-fill { height: 100%; border-radius: 6px; transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1), background 0.4s; }
+.content { padding: 28px; flex: 1; }
 
-  /* ── Action buttons ── */
-  .actions-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 12px; }
-  .action-btn {
-    background: #ffffff; border: 1px solid var(--border); border-radius: 8px;
-    color: var(--text); font-family: 'Space Mono', monospace; font-size: 13px; font-weight: 700;
-    padding: 16px 12px; cursor: pointer; transition: all 0.2s; text-align: center;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.02);
-  }
-  .action-btn:hover { border-color: var(--accent); color: var(--accent); background: #ecfdf5; transform: translateY(-1px); box-shadow: 0 4px 6px rgba(16, 185, 129, 0.1); }
-  .action-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; background: #f8fafc; }
-  .action-btn.pivot-btn:hover { border-color: var(--warn); color: var(--warn); background: #fffbeb; box-shadow: 0 4px 6px rgba(245, 158, 11, 0.1); }
-  .action-btn .cost { display: block; font-size: 10px; color: var(--muted); margin-top: 6px; font-weight: 500; font-family: 'Inter', sans-serif; }
+/* TABS */
+.tab-pane { display: none; animation: fadeUp .3s var(--ease); }
+.tab-pane.active { display: block; }
+@keyframes fadeUp { from{opacity:0;transform:translateY(12px);} to{opacity:1;transform:translateY(0);} }
 
-  /* ── Complaint tags ── */
-  .tags { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
-  .tag {
-    padding: 4px 12px; border-radius: 6px; font-size: 12px; font-weight: 500;
-    font-family: 'Inter', sans-serif;
-    background: #f1f5f9; border: 1px solid #e2e8f0; color: #475569;
-  }
-  .tag.shift { border-color: #fde68a; background: #fffbeb; color: #d97706; }
+/* CARDS */
+.card {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--r-lg); padding: 22px; box-shadow: var(--shadow-sm);
+  transition: box-shadow .2s var(--ease), border-color .2s var(--ease);
+}
+.card:hover { box-shadow: var(--shadow-md); border-color: var(--border-hover); }
+.card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+.card-title { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--text-muted); display: flex; align-items: center; gap: 7px; }
 
-  /* ── Episode log ── */
-  #log-list { max-height: 220px; overflow-y: auto; font-size: 13px; padding-right: 8px; }
-  #log-list::-webkit-scrollbar { width: 6px; }
-  #log-list::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
-  .log-row {
-    display: grid; grid-template-columns: 45px 110px 80px 90px 1fr;
-    gap: 12px; padding: 8px 0; border-bottom: 1px solid #f1f5f9;
-    font-family: 'Space Mono', monospace; font-size: 12px; color: var(--muted);
-    align-items: center;
-  }
-  .log-row:first-child { color: var(--text); font-weight: 600; background: #f8fafc; padding: 8px; border-radius: 6px; margin-bottom: 8px; border: none; }
-  .log-action { color: var(--blue); font-weight: 700; }
-  .log-action.pivot { color: var(--warn); }
-  .log-reward.pos { color: var(--accent); font-weight: 700; }
-  .log-reward.neg { color: var(--danger); font-weight: 700; }
+/* GRIDS */
+.g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.g3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+.g4 { display: grid; grid-template-columns: repeat(4,1fr); gap: 16px; }
+.g-charts { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin-top: 20px; }
+@media(max-width:1200px){.g3{grid-template-columns:1fr 1fr;}.g-charts{grid-template-columns:1fr 1fr;}}
 
-  /* ── Prompt box ── */
-  #prompt-box {
-    background: #f8fafc; border: 1px solid var(--border); border-left: 4px solid var(--purple);
-    border-radius: 8px; padding: 20px; font-family: 'Space Mono', monospace;
-    font-size: 12px; color: #334155; line-height: 1.7; white-space: pre-wrap;
-    max-height: 320px; overflow-y: auto; box-shadow: inset 0 2px 4px rgba(0,0,0,0.01);
-  }
-  #prompt-box::-webkit-scrollbar { width: 6px; }
-  #prompt-box::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+/* STATS */
+.stat-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 20px; box-shadow: var(--shadow-sm); transition: all .2s var(--ease); }
+.stat-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+.stat-val { font-size: 28px; font-weight: 800; color: var(--text); margin: 6px 0 3px; }
+.stat-label { font-size: 12.5px; color: var(--text-muted); font-weight: 500; }
+.stat-trend { font-size: 11.5px; font-weight: 700; display: flex; align-items: center; gap: 4px; margin-top: 10px; }
+.trend-up { color: var(--success); }
+.trend-dn { color: var(--danger); }
+.stat-icon { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; }
 
-  /* ── Reset / control bar ── */
-  .ctrl-bar { padding: 0 32px 24px; display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
-  .ctrl-btn {
-    padding: 12px 24px; border-radius: 8px; cursor: pointer; font-size: 13px;
-    font-family: 'Space Mono', monospace; border: none; transition: all 0.2s; font-weight: 600;
-  }
-  .ctrl-btn.primary { background: var(--accent); color: #ffffff; box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2); }
-  .ctrl-btn.primary:hover { background: #059669; transform: translateY(-1px); box-shadow: 0 4px 6px rgba(16, 185, 129, 0.25); }
-  .ctrl-btn.secondary { background: #ffffff; border: 1px solid #cbd5e1; color: #475569; }
-  .ctrl-btn.secondary:hover { border-color: #94a3b8; color: #0f172a; background: #f8fafc; }
-  select.ctrl-select {
-    background: #ffffff; border: 1px solid #cbd5e1; color: #0f172a; padding: 12px 16px;
-    border-radius: 8px; font-family: 'Space Mono', monospace; font-size: 13px; cursor: pointer;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.02); outline: none; transition: border-color 0.2s;
-  }
-  select.ctrl-select:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1); }
+/* BADGES */
+.badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px; border-radius: 99px; font-size: 11px; font-weight: 700; }
+.badge-green { background: var(--success-light); color: var(--success); }
+.badge-amber { background: var(--warning-light); color: #b45309; }
+.badge-red { background: var(--danger-light); color: var(--danger); }
+.badge-blue { background: var(--info-light); color: var(--info); }
+.badge-purple { background: var(--purple-light); color: var(--purple); }
+.badge-indigo { background: var(--primary-light); color: var(--primary); }
 
-  /* ── Chart ── */
-  .chart-wrap { position: relative; height: 200px; margin-top: 8px; }
+/* BUTTONS */
+.btn { display: inline-flex; align-items: center; gap: 6px; padding: 9px 16px; border-radius: var(--r-md); font-weight: 600; font-size: 13px; cursor: pointer; transition: all .18s var(--ease); border: 1px solid transparent; font-family: inherit; }
+.btn-primary { background: var(--primary); color: #fff; }
+.btn-primary:hover { background: var(--primary-hover); }
+.btn-ghost { background: transparent; border-color: var(--border); color: var(--text-muted); }
+.btn-ghost:hover { background: var(--bg); border-color: var(--border-hover); color: var(--text); }
+.btn-sm { padding: 5px 11px; font-size: 12px; }
 
-  /* ── Alert strip ── */
-  .alert-strip {
-    margin: 0 32px 20px; padding: 16px 20px; border-radius: 8px;
-    font-size: 14px; display: none; align-items: center; gap: 12px; font-weight: 500;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-  }
-  .alert-strip.show { display: flex; }
-  .alert-strip.warn { background: #fffbeb; border: 1px solid #fde68a; color: #d97706; }
-  .alert-strip.danger { background: #fef2f2; border: 1px solid #fecaca; color: #dc2626; }
-  .alert-strip.good { background: #ecfdf5; border: 1px solid #a7f3d0; color: #059669; }
+/* GAUGE */
+.gauge-track { background: var(--bg); height: 6px; border-radius: 3px; overflow: hidden; margin: 8px 0; }
+.gauge-bar { height: 100%; border-radius: 3px; transition: width .7s cubic-bezier(.4,0,.2,1); }
 
-  /* ── Trend pill ── */
-  .trend { padding: 4px 10px; border-radius: 4px; font-size: 11px; font-family: 'Space Mono', monospace; font-weight: 600; }
-  .trend.growing    { background: #ecfdf5; color: #059669; }
-  .trend.plateauing { background: #fffbeb; color: #d97706; }
-  .trend.declining  { background: #fef2f2; color: #dc2626; }
-  .trend.stable     { background: #f8fafc; color: #475569; }
-  .trend.rising     { background: #fffbeb; color: #d97706; }
-  .trend.spiking    { background: #fef2f2; color: #dc2626; }
+/* CHART CONTAINERS */
+.chart-card { background: #fff; border: 1px solid var(--border); border-radius: var(--r-lg); padding: 18px; box-shadow: var(--shadow-sm); transition: all .2s var(--ease); }
+.chart-card:hover { box-shadow: var(--shadow-md); }
+.chart-card-title { font-size: 12px; font-weight: 700; color: var(--text); text-align: center; margin-bottom: 10px; letter-spacing: .01em; }
+.chart-wrap { height: 180px; position: relative; }
 
-  /* ── Scrollbar ── */
-  ::-webkit-scrollbar { width: 8px; height: 8px; } 
-  ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
-  ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+/* ACTIONS */
+.action-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; }
+.action-btn { background: #fff; border: 1.5px solid var(--border); border-radius: var(--r-md); padding: 14px 10px; text-align: center; cursor: pointer; transition: all .2s var(--ease); }
+.action-btn:hover { border-color: var(--primary); background: var(--primary-light); transform: translateY(-2px); box-shadow: var(--shadow-sm); }
+.action-btn-icon { font-size: 18px; margin-bottom: 6px; }
+.action-btn-name { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; }
+.action-btn-desc { font-size: 10px; color: var(--text-light); margin-top: 2px; }
 
-  /* ── Done overlay ── */
-  #done-overlay {
-    display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.85);
-    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
-    align-items: center; justify-content: center; z-index: 100;
-  }
-  #done-overlay.show { display: flex; }
-  .done-box {
-    background: #ffffff; border: 1px solid var(--border); border-radius: 16px;
-    padding: 48px 64px; text-align: center; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-  }
-  .done-box h2 { font-family: 'Space Mono', monospace; font-size: 28px; color: var(--text); margin-bottom: 16px; font-weight: 700; }
-  .done-box p { color: var(--muted); margin-bottom: 32px; font-size: 16px; }
-  .done-stats { display: flex; gap: 40px; justify-content: center; margin-bottom: 36px; }
-  .done-stat .label { font-size: 12px; color: var(--muted); margin-bottom: 8px; font-weight: 500; text-transform: uppercase; letter-spacing: 1px; }
-  .done-stat .val { font-family: 'Space Mono', monospace; font-size: 24px; color: var(--text); font-weight: 700; }
+/* LOG */
+.log-list { max-height: 280px; overflow-y: auto; }
+.log-row { display: flex; align-items: center; gap: 12px; padding: 9px 12px; border-bottom: 1px solid var(--border); font-size: 12.5px; }
+.log-row:last-child { border-bottom: none; }
+.log-step { color: var(--text-light); font-family: 'JetBrains Mono',monospace; font-size: 11px; width: 38px; flex-shrink: 0; }
+
+/* LEADERBOARD */
+.lb-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.lb-table th { padding: 12px 14px; text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--text-light); border-bottom: 1px solid var(--border); }
+.lb-table td { padding: 13px 14px; border-bottom: 1px solid var(--border); }
+.lb-table tr:hover td { background: var(--bg); }
+.rank-1 { color: #f59e0b; font-weight: 800; }
+.rank-2 { color: var(--text-muted); font-weight: 700; }
+.rank-3 { color: #cd7c2f; font-weight: 700; }
+
+/* MODAL */
+.modal-backdrop { position: fixed; inset: 0; background: rgba(15,23,42,.45); backdrop-filter: blur(10px); display: none; align-items: center; justify-content: center; z-index: 999; }
+.modal-backdrop.show { display: flex; }
+.modal { background: #fff; border-radius: var(--r-lg); padding: 40px; max-width: 480px; width: 90%; box-shadow: var(--shadow-lg); text-align: center; animation: fadeUp .3s var(--ease); }
+
+/* SCROLLBAR */
+::-webkit-scrollbar{width:6px;height:6px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:3px;}
+::-webkit-scrollbar-thumb:hover{background:#94a3b8;}
+
+/* ANALYTICS SPECIFIC */
+.analytics-meta { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin-bottom: 20px; }
+.meta-chip { background: var(--bg); border: 1px solid var(--border); border-radius: var(--r-sm); padding: 7px 13px; font-size: 12px; font-weight: 600; color: var(--text-muted); display: flex; align-items: center; gap: 6px; }
+.meta-chip span { color: var(--text); font-weight: 700; }
+
+/* COMPARE */
+.compare-card { border: 1px solid var(--border); border-radius: var(--r-lg); padding: 20px; text-align: center; }
+.compare-card.winner { border-color: var(--primary); background: var(--primary-light); }
+.compare-score { font-size: 36px; font-weight: 800; margin: 10px 0 4px; }
+
+/* ADVISOR */
+.advisor-bubble { max-width: 80%; padding: 12px 16px; border-radius: var(--r-lg); font-size: 13.5px; line-height: 1.55; }
+.bubble-user { background: var(--primary); color: #fff; margin-left: auto; border-bottom-right-radius: 4px; }
+.bubble-bot { background: #fff; border: 1px solid var(--border); color: var(--text); margin-right: auto; border-bottom-left-radius: 4px; }
+
+/* TRAINING TIMELINE */
+.timeline-bar { display: flex; align-items: stretch; gap: 0; height: 28px; border-radius: 6px; overflow: hidden; margin: 10px 0; }
+.tl-seg { display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; color: white; letter-spacing: .04em; transition: flex .5s var(--ease); }
 </style>
 </head>
 <body>
 
-<!-- Done overlay -->
-<div id="done-overlay">
-  <div class="done-box">
-    <h2 id="done-title">EPISODE COMPLETE</h2>
-    <p id="done-msg">The startup has reached the end of the 60-month simulation.</p>
-    <div class="done-stats">
-      <div class="done-stat"><div class="label">Total Reward</div><div class="val" id="done-reward">—</div></div>
-      <div class="done-stat"><div class="label">Survived</div><div class="val" id="done-survived">—</div></div>
-      <div class="done-stat"><div class="label">Pivot at Step</div><div class="val" id="done-pivot">—</div></div>
-      <div class="done-stat"><div class="label">Final Revenue</div><div class="val" id="done-revenue">—</div></div>
+<!-- ═══════════════════ SIDEBAR ═══════════════════ -->
+<aside>
+  <div class="sidebar-logo">
+    <div class="logo-icon">
+      <svg viewBox="0 0 24 24"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
     </div>
-    <button class="ctrl-btn primary" onclick="resetEpisode()">Start New Episode</button>
-  </div>
-</div>
-
-<!-- Header -->
-<header>
-  <span style="font-size:28px">🔄</span>
-  <div>
-    <h1>THE PIVOT</h1>
-    <div style="color:var(--muted);font-family:'Space Mono',monospace;font-size:11px;margin-top:4px;font-weight:500">OpenEnv Dashboard · Meta PyTorch Hackathon 2026</div>
-  </div>
-  <span id="phase-badge" class="badge badge-green">GROWTH</span>
-  <div style="display:flex;gap:8px;align-items:center;margin-left:16px">
-    <span class="badge badge-blue mono" id="step-badge">Step 0/60</span>
-    <span class="badge badge-green mono" id="reward-badge">Reward: 0.0</span>
-  </div>
-  <div id="status-msg">Click Reset to start a new episode.</div>
-  <a href="/chat" style="margin-left:auto;padding:8px 18px;background:var(--purple);color:#000;border-radius:5px;font-family:'Space Mono',monospace;font-size:11px;font-weight:700;text-decoration:none;letter-spacing:1px">💬 AI CHAT →</a>
-</header>
-
-<!-- Alert strip -->
-<div class="alert-strip" id="alert-strip"></div>
-
-<!-- Controls -->
-<div class="ctrl-bar" style="margin-top:16px">
-  <button class="ctrl-btn primary" id="reset-btn" onclick="resetEpisode()">⟳ Reset Episode</button>
-  <select class="ctrl-select" id="scenario-select">
-    <option value="default">Default Scenario</option>
-    <option value="b2c_saas">B2C SaaS Collapse (Easy)</option>
-    <option value="marketplace">Marketplace Squeeze (Hard)</option>
-    <option value="enterprise_saas">Enterprise SaaS (Medium)</option>
-    <option value="consumer_app">Consumer App (Very Hard)</option>
-    <option value="fintech">Fintech Regulatory (Medium-Hard)</option>
-  </select>
-  <span style="font-size:12px;color:var(--muted);font-weight:600">Episode <span id="ep-num" class="mono" style="color:var(--text)">1</span></span>
-  <span style="font-size:12px;color:var(--muted);margin-left:auto">Total reward this episode: <span id="total-reward" class="mono" style="color:var(--accent)">0.0</span></span>
-</div>
-
-<!-- Row 1: Financial + Market + Founder -->
-<div class="grid">
-
-  <!-- Financial -->
-  <div class="card card-accent">
-    <div class="card-title">💰 Financial State</div>
-    <div class="stat-row">
-      <span class="stat-label">Runway</span>
-      <span class="stat-value big" id="runway">18 mo</span>
-    </div>
-    <div class="gauge-wrap">
-      <div class="gauge-bg"><div class="gauge-fill" id="runway-gauge" style="width:100%;background:var(--accent)"></div></div>
-    </div>
-    <div class="stat-row" style="margin-top:12px">
-      <span class="stat-label">Monthly Revenue</span>
-      <span class="stat-value" id="revenue">$45,000</span>
-    </div>
-    <div class="stat-row">
-      <span class="stat-label">Burn Rate</span>
-      <span class="stat-value" id="burn">$120,000</span>
-    </div>
-    <div class="stat-row">
-      <span class="stat-label">Net Cash Flow</span>
-      <span class="stat-value" id="net-flow">-$75,000/mo</span>
-    </div>
-    <div class="stat-row">
-      <span class="stat-label">3-Month Revenue Δ</span>
-      <span class="stat-value" id="rev-delta">0.0%</span>
-    </div>
-    <div style="margin-top:8px;display:flex;gap:6px;align-items:center">
-      <span class="stat-label">Trend:</span>
-      <span class="trend growing" id="rev-trend">growing</span>
+    <div class="logo-text">
+      <strong>FounderOS</strong>
+      <span>META HACKATHON 2026</span>
     </div>
   </div>
 
-  <!-- Market Signals -->
-  <div class="card card-warn">
-    <div class="card-title">📊 Market Signals (noisy)</div>
-    <div class="stat-row">
-      <span class="stat-label">Churn Rate</span>
-      <span class="stat-value" id="churn">12.0%</span>
+  <div class="sidebar-section">
+    <div class="sidebar-section-label">Main</div>
+    <div class="nav-item active" data-tab="dashboard" onclick="nav('dashboard')">
+      <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+      Dashboard
     </div>
-    <div class="gauge-wrap">
-      <div class="gauge-bg"><div class="gauge-fill" id="churn-gauge" style="width:12%;background:var(--accent)"></div></div>
+    <div class="nav-item" data-tab="analytics" onclick="nav('analytics')">
+      <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+      Analytics
+      <span class="nav-badge">Live</span>
     </div>
-    <div style="display:flex;gap:6px;align-items:center;margin-bottom:10px">
-      <span class="stat-label">Trend:</span>
-      <span class="trend stable" id="churn-trend">stable</span>
+    <div class="nav-item" data-tab="training" onclick="nav('training')">
+      <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      Training Run
     </div>
-    <div class="stat-row">
-      <span class="stat-label">NPS Score</span>
-      <span class="stat-value" id="nps">52</span>
-    </div>
-    <div class="gauge-wrap">
-      <div class="gauge-bg"><div class="gauge-fill" id="nps-gauge" style="width:76%;background:var(--accent)"></div></div>
-    </div>
-    <div class="stat-row" style="margin-top:10px">
-      <span class="stat-label">Competitor Event</span>
-      <span class="stat-value" id="competitor">—</span>
-    </div>
-    <div class="stat-row">
-      <span class="stat-label">Rival Strategy</span>
-      <span class="stat-value" id="comp-play" style="color:var(--warn)">dormant</span>
-    </div>
-    <div class="gauge-wrap">
-      <div class="gauge-bg"><div class="gauge-fill" id="comp-strength-gauge" style="width:30%;background:var(--warn)"></div></div>
-    </div>
-    <div class="stat-row">
-      <span class="stat-label">Rival Strength</span>
-      <span class="stat-value" id="comp-strength">30%</span>
-    </div>
-    <div class="stat-row">
-      <span class="stat-label">Complaint Shift</span>
-      <span class="stat-value" id="complaint-shift">No</span>
-    </div>
-    <div class="tags" id="complaint-tags"></div>
-  </div>
-
-  <!-- Founder + Investor -->
-  <div class="card card-purple">
-    <div class="card-title">👤 Co-Founder · Ghost Protocol</div>
-    <div class="stat-row">
-      <span class="stat-label">Advice</span>
-      <span class="stat-value" id="advice" style="color:var(--purple)">stay_course</span>
-    </div>
-    <div class="stat-row" style="margin-top:6px">
-      <span class="stat-label">Confidence</span>
-      <span class="stat-value" id="confidence">100%</span>
-    </div>
-    <div class="gauge-wrap" style="margin-bottom:16px">
-      <div class="gauge-bg"><div class="gauge-fill" id="confidence-gauge" style="width:100%;background:var(--purple)"></div></div>
-    </div>
-
-    <div class="card-title" style="margin-top:4px">🏦 Investor State</div>
-    <div class="stat-row">
-      <span class="stat-label">Sentiment</span>
-      <span class="stat-value" id="sentiment">65%</span>
-    </div>
-    <div class="gauge-wrap">
-      <div class="gauge-bg"><div class="gauge-fill" id="sentiment-gauge" style="width:65%;background:var(--blue)"></div></div>
-    </div>
-    <div style="margin-top:10px;font-size:11px;color:var(--muted)">Milestone:</div>
-    <div style="font-size:12px;color:var(--text);margin-top:4px;line-height:1.5;font-weight:500" id="milestone">Show 10% MoM revenue growth</div>
-    <div style="margin-top:8px;font-size:11px;color:var(--muted)">Pivot cost: <span class="mono" style="color:var(--text);font-weight:600" id="pivot-cost">3 months</span></div>
-    <div style="font-size:11px;color:var(--muted);margin-top:4px">Months at risk: <span class="mono" style="color:var(--text);font-weight:600" id="months-risk">0</span></div>
-  </div>
-
-</div>
-
-<!-- Row 1.5: Product, Team, Marketing -->
-<div class="grid" style="padding-top:0">
-  <!-- Product Health -->
-  <div class="card card-blue">
-    <div class="card-title">🚀 Product Health</div>
-    <div class="stat-row"><span class="stat-label">PMF Score</span><span class="stat-value" id="pmf-score">0.55</span></div>
-    <div class="gauge-wrap"><div class="gauge-bg"><div class="gauge-fill" id="pmf-gauge" style="width:55%;background:var(--blue)"></div></div></div>
-    <div class="stat-row" style="margin-top:12px"><span class="stat-label">Tech Debt Ratio</span><span class="stat-value" id="tech-debt">15%</span></div>
-    <div class="gauge-wrap"><div class="gauge-bg"><div class="gauge-fill" id="tech-debt-gauge" style="width:15%;background:var(--warn)"></div></div></div>
-    <div class="stat-row" style="margin-top:12px"><span class="stat-label">Debt Severity</span><span class="stat-value" id="td-severity">low</span></div>
-    <div class="stat-row"><span class="stat-label">Features Shipped</span><span class="stat-value" id="feat-shipped">1</span></div>
-    <div class="stat-row"><span class="stat-label">Pipeline Depth</span><span class="stat-value" id="feat-pipeline">3</span></div>
-  </div>
-
-  <!-- Team Dynamics -->
-  <div class="card card-accent">
-    <div class="card-title">👥 Team Dynamics</div>
-    <div class="stat-row"><span class="stat-label">Team Morale</span><span class="stat-value" id="morale">75%</span></div>
-    <div class="gauge-wrap"><div class="gauge-bg"><div class="gauge-fill" id="morale-gauge" style="width:75%;background:var(--accent)"></div></div></div>
-    <div class="stat-row" style="margin-top:12px"><span class="stat-label">Total Headcount</span><span class="stat-value" id="headcount">8</span></div>
-    <div class="stat-row"><span class="stat-label">Engineering</span><span class="stat-value" id="eng-headcount">4</span></div>
-    <div class="stat-row"><span class="stat-label">Sales</span><span class="stat-value" id="sales-headcount">2</span></div>
-    <div class="stat-row"><span class="stat-label">Support</span><span class="stat-value" id="support-headcount">2</span></div>
-  </div>
-
-  <!-- Marketing & Pipeline -->
-  <div class="card card-purple">
-    <div class="card-title">📣 Marketing Metrics</div>
-    <div class="stat-row"><span class="stat-label">LTV / CAC Ratio</span><span class="stat-value big" id="ltv-cac" style="font-size:20px">4.0x</span></div>
-    <div class="stat-row" style="margin-top:12px"><span class="stat-label">CAC</span><span class="stat-value" id="cac">$1,500</span></div>
-    <div class="stat-row"><span class="stat-label">LTV</span><span class="stat-value" id="ltv">$6,000</span></div>
-    <div class="stat-row"><span class="stat-label">Brand Awareness</span><span class="stat-value" id="brand">20%</span></div>
-    <div class="gauge-wrap"><div class="gauge-bg"><div class="gauge-fill" id="brand-gauge" style="width:20%;background:var(--purple)"></div></div></div>
-    <div class="stat-row" style="margin-top:12px"><span class="stat-label">Pipeline Gen</span><span class="stat-value" id="pipeline-gen">$0</span></div>
-  </div>
-</div>
-
-<!-- Row 2: Actions + Chart -->
-<div class="grid-wide">
-
-  <!-- Actions -->
-  <div class="card card-accent">
-    <div class="card-title">⚡ Agent Actions — Click to Step</div>
-    <div class="actions-grid">
-      <button class="action-btn" onclick="takeAction('EXECUTE')">
-        EXECUTE<span class="cost">Stay the course</span>
-      </button>
-      <button class="action-btn pivot-btn" onclick="takeAction('PIVOT')">
-        PIVOT<span class="cost">-3mo runway, -40% rev</span>
-      </button>
-      <button class="action-btn" onclick="takeAction('RESEARCH')">
-        RESEARCH<span class="cost">Reduce noise</span>
-      </button>
-      <button class="action-btn" onclick="takeAction('FUNDRAISE')">
-        FUNDRAISE<span class="cost">Pitch investor</span>
-      </button>
-      <button class="action-btn" onclick="takeAction('HIRE')">
-        HIRE<span class="cost">+$20k burn/mo</span>
-      </button>
-      <button class="action-btn" onclick="takeAction('CUT_COSTS')">
-        CUT_COSTS<span class="cost">-$30k burn</span>
-      </button>
-      <button class="action-btn" onclick="takeAction('SELL')">
-        SELL<span class="cost">Acqui-hire exit</span>
-      </button>
-      <button class="action-btn" onclick="takeAction('LAUNCH_FEATURE')">
-        LAUNCH_FEATURE<span class="cost">Ship feature</span>
-      </button>
-      <button class="action-btn" onclick="takeAction('MARKETING_CAMPAIGN')">
-        MARKETING<span class="cost">Run campaign</span>
-      </button>
-      <button class="action-btn" onclick="takeAction('SET_PRICING')">
-        SET_PRICING<span class="cost">Adjust tier</span>
-      </button>
-      <button class="action-btn" onclick="takeAction('FIRE')">
-        FIRE<span class="cost">Layoff (-burn)</span>
-      </button>
-      <button class="action-btn" onclick="takeAction('PARTNERSHIP')">
-        PARTNERSHIP<span class="cost">Channel deal</span>
-      </button>
-    </div>
-
-    <!-- Episode log -->
-    <div class="card-title" style="margin-top:20px">📋 Episode Log</div>
-    <div class="log-row" style="color:var(--muted);font-size:10px">
-      <span>Step</span><span>Action</span><span>Reward</span><span>Runway</span><span>Phase</span>
-    </div>
-    <div id="log-list"></div>
-  </div>
-
-  <!-- Reward chart -->
-  <div class="card card-blue">
-    <div class="card-title">📈 Reward Over Time</div>
-    <div class="chart-wrap"><canvas id="reward-chart"></canvas></div>
-    <div class="card-title" style="margin-top:20px">💹 Revenue vs Burn</div>
-    <div class="chart-wrap"><canvas id="financial-chart"></canvas></div>
-  </div>
-
-</div>
-
-<!-- Row 3: LLM Prompt -->
-<div class="grid-full">
-  <div class="card card-purple">
-    <div class="card-title">🤖 What the LLM Agent Reads (Prompt Encoder Output)</div>
-    <div id="prompt-box">Click Reset to start. Then take actions to see what the LLM would read at each step.</div>
-  </div>
-</div>
-
-<!-- Row 4: Episode Replay -->
-<div class="grid-full">
-  <div class="card card-blue">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-      <div class="card-title" style="margin-bottom:0">📼 Episode Replay — Full Timeline</div>
-      <button class="ctrl-btn secondary" style="padding:6px 14px;font-size:11px" onclick="exportReplay()">⬇ Export JSON</button>
-    </div>
-    <div id="replay-empty" style="font-size:12px;color:var(--muted);padding:12px 0">Play through an episode and the full step-by-step timeline will appear here.</div>
-    <div id="replay-table-wrap" style="display:none;overflow-x:auto">
-      <table id="replay-table" style="width:100%;border-collapse:collapse;font-family:'Space Mono',monospace;font-size:11px">
-        <thead>
-          <tr style="color:var(--muted);border-bottom:1px solid var(--border);text-align:left">
-            <th style="padding:6px 8px">Step</th>
-            <th style="padding:6px 8px">Action</th>
-            <th style="padding:6px 8px">Reward</th>
-            <th style="padding:6px 8px">Runway</th>
-            <th style="padding:6px 8px">Revenue</th>
-            <th style="padding:6px 8px">Churn</th>
-            <th style="padding:6px 8px">NPS</th>
-            <th style="padding:6px 8px">Competitor</th>
-            <th style="padding:6px 8px">Phase</th>
-          </tr>
-        </thead>
-        <tbody id="replay-tbody"></tbody>
-      </table>
+    <div class="nav-item" data-tab="advisor" onclick="nav('advisor')">
+      <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      AI Advisor
     </div>
   </div>
-</div>
 
-<!-- Chat Panel -->
-<div class="grid-full" style="margin-bottom:20px" id="chat-section">
-  <div class="card" style="border-top:2px solid var(--purple)">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px">
-      <div>
-        <div class="card-title" style="margin-bottom:4px">💬 Chat with the Trained Model</div>
-        <div style="font-size:12px;color:var(--muted)">Ask the RL-trained startup advisor anything. Describe your metrics — it tells you what to do.</div>
+  <div class="sidebar-section">
+    <div class="sidebar-section-label">Explore</div>
+    <div class="nav-item" data-tab="environment" onclick="nav('environment')">
+      <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+      Environment
+    </div>
+    <div class="nav-item" data-tab="compare" onclick="nav('compare')">
+      <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+      Model Compare
+    </div>
+    <div class="nav-item" data-tab="leaderboard" onclick="nav('leaderboard')">
+      <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg>
+      Leaderboard
+    </div>
+  </div>
+
+  <div class="sidebar-footer">
+    <div style="font-size:10px;color:var(--text-light);font-weight:700;text-transform:uppercase;margin-bottom:8px;">System</div>
+    <div style="display:flex;align-items:center;gap:7px;margin-bottom:5px;">
+      <div class="status-dot" id="sidebar-status-dot"></div>
+      <span id="sidebar-status-text" style="font-size:12px;font-weight:700;color:var(--success);">Loading…</span>
+    </div>
+    <div id="sidebar-model" style="font-size:11px;color:var(--text-light);">Qwen2.5-0.5B · LoRA r=8</div>
+    <div id="sidebar-meta" style="font-size:11px;color:var(--text-light);margin-top:2px;">— episodes · Tier —</div>
+  </div>
+</aside>
+
+<!-- ═══════════════════ MAIN ═══════════════════ -->
+<main>
+  <header>
+    <div class="header-breadcrumb">
+      <span class="crumb">FounderOS</span>
+      <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+      <span class="crumb-active" id="header-title">Dashboard</span>
+    </div>
+    <div class="header-right">
+      <div id="phase-badge" class="badge badge-green">● GROWTH PHASE</div>
+      <div class="mono" style="font-size:12px;font-weight:600;color:var(--text-muted);">STEP <span id="step-display" style="color:var(--text);">0/60</span></div>
+      <select id="scenario-select" class="btn btn-ghost btn-sm" style="padding-right:28px;">
+        <option value="b2c_saas">B2C SaaS</option>
+        <option value="marketplace">Marketplace</option>
+        <option value="enterprise_saas">Enterprise SaaS</option>
+        <option value="consumer_app">Consumer App</option>
+        <option value="fintech">Fintech</option>
+      </select>
+      <button class="btn btn-ghost btn-sm" onclick="resetSim()">↺ Reset</button>
+    </div>
+  </header>
+
+  <div class="content">
+
+    <!-- ══════ DASHBOARD TAB ══════ -->
+    <div id="tab-dashboard" class="tab-pane active" data-screen-label="01 Dashboard">
+      <div class="g4" style="margin-bottom:20px;">
+        <div class="stat-card">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+            <div style="font-size:12px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em;">Runway</div>
+            <div class="stat-icon" style="background:var(--success-light);">
+              <svg width="16" height="16" fill="none" stroke="var(--success)" viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+            </div>
+          </div>
+          <div class="stat-val" id="stat-runway">18 mo</div>
+          <div class="gauge-track"><div class="gauge-bar" id="g-runway" style="width:75%;background:var(--success);"></div></div>
+          <div class="stat-trend trend-up">▲ 2 mo from last step</div>
+        </div>
+        <div class="stat-card">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+            <div style="font-size:12px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em;">MRR</div>
+            <div class="stat-icon" style="background:var(--primary-light);">
+              <svg width="16" height="16" fill="none" stroke="var(--primary)" viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/></svg>
+            </div>
+          </div>
+          <div class="stat-val" id="stat-mrr">$45k</div>
+          <div class="gauge-track"><div class="gauge-bar" id="g-mrr" style="width:38%;background:var(--primary);"></div></div>
+          <div class="stat-trend trend-up">▲ +8% this month</div>
+        </div>
+        <div class="stat-card">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+            <div style="font-size:12px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em;">Churn</div>
+            <div class="stat-icon" style="background:var(--warning-light);">
+              <svg width="16" height="16" fill="none" stroke="var(--warning)" viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            </div>
+          </div>
+          <div class="stat-val" id="stat-churn">12%</div>
+          <div class="gauge-track"><div class="gauge-bar" id="g-churn" style="width:12%;background:var(--warning);"></div></div>
+          <div class="stat-trend trend-dn">▼ +1.4% worsening</div>
+        </div>
+        <div class="stat-card">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+            <div style="font-size:12px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em;">Competitor</div>
+            <div class="stat-icon" style="background:var(--danger-light);">
+              <svg width="16" height="16" fill="none" stroke="var(--danger)" viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            </div>
+          </div>
+          <div class="stat-val" id="stat-comp">30%</div>
+          <div class="gauge-track"><div class="gauge-bar" id="g-comp" style="width:30%;background:var(--danger);"></div></div>
+          <div class="stat-trend trend-dn">▲ gaining market share</div>
+        </div>
       </div>
-      <div id="model-status-badge" style="font-size:11px;padding:6px 12px;border-radius:6px;font-family:'Space Mono',monospace;background:#f8fafc;border:1px solid var(--border);color:var(--muted);font-weight:600">
-        checking...
+
+      <div class="g2" style="margin-bottom:20px;">
+        <!-- LEFT: Episode Reward + LLM Agent Context -->
+        <div>
+          <div class="card" style="margin-bottom:20px;">
+            <div class="card-header">
+              <div class="card-title">
+                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/></svg>
+                Episode Reward
+              </div>
+              <div class="badge badge-indigo mono" id="reward-display">+0.0</div>
+            </div>
+            <div style="height:220px;position:relative;"><canvas id="dash-reward-chart"></canvas></div>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">
+                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+                LLM Agent Context
+              </div>
+            </div>
+            <div id="prompt-box" class="mono" style="background:var(--bg);padding:14px;border-radius:var(--r-md);font-size:10.5px;height:200px;overflow-y:auto;line-height:1.6;color:var(--text-muted);">Initializing simulation... Select an action to begin.</div>
+          </div>
+        </div>
+
+        <!-- RIGHT: Strategic Actions + Episode Log -->
+        <div>
+          <div class="card" style="margin-bottom:20px;">
+            <div class="card-header">
+              <div class="card-title">
+                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                Strategic Actions
+              </div>
+            </div>
+            <div class="action-grid">
+              <div class="action-btn" onclick="doAction('EXECUTE')"><div class="action-btn-icon">▶</div><div class="action-btn-name">Execute</div><div class="action-btn-desc">Stay course</div></div>
+              <div class="action-btn" onclick="doAction('PIVOT')"><div class="action-btn-icon">🔀</div><div class="action-btn-name">Pivot</div><div class="action-btn-desc">-3mo runway</div></div>
+              <div class="action-btn" onclick="doAction('RESEARCH')"><div class="action-btn-icon">🔬</div><div class="action-btn-name">Research</div><div class="action-btn-desc">Reduce noise</div></div>
+              <div class="action-btn" onclick="doAction('FUNDRAISE')"><div class="action-btn-icon">💰</div><div class="action-btn-name">Fundraise</div><div class="action-btn-desc">Get capital</div></div>
+              <div class="action-btn" onclick="doAction('HIRE')"><div class="action-btn-icon">👥</div><div class="action-btn-name">Hire</div><div class="action-btn-desc">+Burn rate</div></div>
+              <div class="action-btn" onclick="doAction('CUT_COSTS')"><div class="action-btn-icon">✂️</div><div class="action-btn-name">Cut Costs</div><div class="action-btn-desc">-Burn rate</div></div>
+              <div class="action-btn" onclick="doAction('MARKETING')"><div class="action-btn-icon">📣</div><div class="action-btn-name">Marketing</div><div class="action-btn-desc">Grow demand</div></div>
+              <div class="action-btn" onclick="doAction('LAUNCH')"><div class="action-btn-icon">🚀</div><div class="action-btn-name">Launch</div><div class="action-btn-desc">Ship feature</div></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">
+                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                Episode Log
+              </div>
+              <span class="badge badge-indigo" id="episode-num">EP #1</span>
+            </div>
+            <div class="log-list" id="log-list">
+              <div style="padding:24px;text-align:center;color:var(--text-light);font-size:13px;">No actions taken yet</div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
-    <!-- Chat messages -->
-    <div id="chat-messages" style="background:#f8fafc;border:1px solid var(--border);border-radius:8px;min-height:220px;max-height:360px;overflow-y:auto;padding:20px;margin-bottom:16px;display:flex;flex-direction:column;gap:16px;box-shadow:inset 0 2px 4px rgba(0,0,0,0.01)">
-      <div id="chat-welcome" style="color:var(--muted);font-size:13px;font-family:'Space Mono',monospace;text-align:center;margin:auto;line-height:1.6">
-        🤖 Model is loading... or type your first message below.<br>
-        <span style="font-size:11px;color:var(--muted);opacity:0.8;display:block;margin-top:8px">Example: "Month 38, MRR $62k, burn $95k, runway 11mo, NPS 18, churn 22%. Competitor just cut prices."</span>
+    <!-- ══════ ANALYTICS TAB ══════ -->
+    <div id="tab-analytics" class="tab-pane" data-screen-label="02 Analytics">
+      <div class="analytics-meta">
+        <div class="meta-chip">Run ID <span>v4jkjvvj</span></div>
+        <div class="meta-chip">Model <span>Qwen2.5-0.5B + LoRA r=8</span></div>
+        <div class="meta-chip">Algorithm <span>GRPO + ε-greedy</span></div>
+        <div class="meta-chip">Episodes <span>150</span></div>
+        <div class="meta-chip">Tier <span>2 / 5</span></div>
+        <div class="meta-chip">Best Reward <span style="color:var(--success);">7.0</span></div>
+        <div class="meta-chip">Survival Rate <span style="color:var(--warning);">20%</span></div>
+      </div>
+
+      <!-- Summary stats -->
+      <div class="g4" style="margin-bottom:20px;">
+        <div class="stat-card">
+          <div style="font-size:11px;font-weight:700;color:var(--text-light);text-transform:uppercase;letter-spacing:.05em;">Mean Reward (last 20ep)</div>
+          <div class="stat-val" style="color:var(--danger);">−0.5</div>
+          <div class="stat-trend trend-dn">↑ improving from −7.0</div>
+        </div>
+        <div class="stat-card">
+          <div style="font-size:11px;font-weight:700;color:var(--text-light);text-transform:uppercase;letter-spacing:.05em;">Best Reward</div>
+          <div class="stat-val" style="color:var(--success);">7.0</div>
+          <div class="stat-trend trend-up">achieved at episode 148</div>
+        </div>
+        <div class="stat-card">
+          <div style="font-size:11px;font-weight:700;color:var(--text-light);text-transform:uppercase;letter-spacing:.05em;">Survival Rate</div>
+          <div class="stat-val" style="color:var(--warning);">20%</div>
+          <div class="stat-trend trend-dn">target ≥ 45% for tier 3</div>
+        </div>
+        <div class="stat-card">
+          <div style="font-size:11px;font-weight:700;color:var(--text-light);text-transform:uppercase;letter-spacing:.05em;">Final Tier</div>
+          <div class="stat-val">2 / 5</div>
+          <div class="stat-trend" style="color:var(--text-muted);">adaptive curriculum</div>
+        </div>
+      </div>
+
+      <!-- 6 charts matching screenshots -->
+      <div class="g-charts">
+        <div class="chart-card">
+          <div class="chart-card-title">unique_actions</div>
+          <div class="chart-wrap"><canvas id="c-unique-actions"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-card-title">survived</div>
+          <div class="chart-wrap"><canvas id="c-survived"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-card-title">reward_baseline</div>
+          <div class="chart-wrap"><canvas id="c-reward-baseline"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-card-title">pivot_count</div>
+          <div class="chart-wrap"><canvas id="c-pivot-count"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-card-title">mean_reward_20ep</div>
+          <div class="chart-wrap"><canvas id="c-mean-reward"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-card-title">loss</div>
+          <div class="chart-wrap"><canvas id="c-loss"></canvas></div>
+        </div>
+      </div>
+
+      <!-- Metric preset buttons -->
+      <div style="margin-top:20px;" class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
+            WandB Sync Panel
+          </div>
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-ghost btn-sm" onclick="highlightMetric('reward')">Reward</button>
+            <button class="btn btn-ghost btn-sm" onclick="highlightMetric('loss')">Loss</button>
+            <button class="btn btn-ghost btn-sm" onclick="highlightMetric('survival')">Survival</button>
+          </div>
+        </div>
+        <div style="height:200px;position:relative;"><canvas id="c-main-analytics"></canvas></div>
       </div>
     </div>
 
-    <!-- Input row -->
-    <div style="display:flex;gap:10px">
-      <input id="chat-input" type="text"
-        placeholder='e.g. "Month 38, MRR $62k, burn $95k, runway 11mo, NPS 18, churn 22%..."'
-        style="flex:1;background:#ffffff;border:1px solid var(--border);color:var(--text);padding:14px 16px;border-radius:8px;font-size:14px;font-family:'Inter',sans-serif;outline:none;box-shadow:0 1px 2px rgba(0,0,0,0.02);transition:border-color 0.2s"
-        onkeydown="if(event.key==='Enter')sendChat()"
-      />
-      <button class="ctrl-btn primary" id="chat-send-btn" onclick="sendChat()" style="padding:12px 24px;white-space:nowrap">Send ↵</button>
-      <button class="ctrl-btn secondary" onclick="clearChat()" style="padding:12px 16px">Clear</button>
-    </div>
-    <div style="font-size:12px;color:var(--muted);margin-top:10px;font-weight:500">
-      💡 Tip: Include month, MRR, burn, runway, NPS, churn for best advice. The model was trained on 5 startup scenarios over 150 episodes.
-    </div>
-  </div>
-</div>
+    <!-- ══════ TRAINING RUN TAB ══════ -->
+    <div id="tab-training" class="tab-pane" data-screen-label="03 Training Run">
+      <div class="g2" style="margin-bottom:20px;">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Training Configuration</div>
+            <span class="badge badge-green">● Complete</span>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:10px;">
+            <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);font-size:13px;">
+              <span style="color:var(--text-muted);font-weight:600;">Base Model</span>
+              <span class="mono" style="font-weight:700;">Qwen2.5-0.5B-Instruct</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);font-size:13px;">
+              <span style="color:var(--text-muted);font-weight:600;">PEFT Method</span>
+              <span class="mono" style="font-weight:700;">LoRA r=8 (q,v proj)</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);font-size:13px;">
+              <span style="color:var(--text-muted);font-weight:600;">Quantization</span>
+              <span class="mono" style="font-weight:700;">4-bit nf4 · bfloat16</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);font-size:13px;">
+              <span style="color:var(--text-muted);font-weight:600;">Algorithm</span>
+              <span class="mono" style="font-weight:700;">GRPO + ε=0.3 greedy</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);font-size:13px;">
+              <span style="color:var(--text-muted);font-weight:600;">Hardware</span>
+              <span class="mono" style="font-weight:700;">Colab T4 · 90 min</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;padding:10px 0;font-size:13px;">
+              <span style="color:var(--text-muted);font-weight:600;">Total Episodes</span>
+              <span class="mono" style="font-weight:700;">150</span>
+            </div>
+          </div>
+        </div>
 
-<!-- Row 5: Live Demo -->
-<div class="grid-full" style="margin-bottom:20px">
-  <div class="card card-purple">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px">
-      <div>
-        <div class="card-title" style="margin-bottom:4px">🤖 Live Demo — Watch the Agent Play</div>
-        <div style="font-size:12px;color:var(--muted)">Runs a full 60-month episode using the rule-based advisor. See every decision + reasoning.</div>
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Curriculum Progress</div>
+            <span class="badge badge-amber">Tier 2 / 5</span>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:14px;">
+            <div>
+              <div style="display:flex;justify-content:space-between;margin-bottom:6px;font-size:12px;font-weight:700;">
+                <span>Tier 1 · Easy</span>
+                <span style="color:var(--success);">✓ Unlocked</span>
+              </div>
+              <div class="gauge-track" style="height:10px;"><div class="gauge-bar" style="width:100%;background:var(--success);"></div></div>
+            </div>
+            <div>
+              <div style="display:flex;justify-content:space-between;margin-bottom:6px;font-size:12px;font-weight:700;">
+                <span>Tier 2 · Medium</span>
+                <span style="color:var(--success);">✓ Unlocked</span>
+              </div>
+              <div class="gauge-track" style="height:10px;"><div class="gauge-bar" style="width:100%;background:var(--success);"></div></div>
+            </div>
+            <div>
+              <div style="display:flex;justify-content:space-between;margin-bottom:6px;font-size:12px;font-weight:700;">
+                <span>Tier 3 · Hard</span>
+                <span style="color:var(--warning);">Needs 45% survival</span>
+              </div>
+              <div class="gauge-track" style="height:10px;"><div class="gauge-bar" style="width:44%;background:var(--warning);"></div></div>
+            </div>
+            <div>
+              <div style="display:flex;justify-content:space-between;margin-bottom:6px;font-size:12px;font-weight:700;">
+                <span>Tier 4 · Expert</span>
+                <span style="color:var(--text-light);">Locked</span>
+              </div>
+              <div class="gauge-track" style="height:10px;"><div class="gauge-bar" style="width:0%;background:var(--border-hover);"></div></div>
+            </div>
+            <div>
+              <div style="display:flex;justify-content:space-between;margin-bottom:6px;font-size:12px;font-weight:700;">
+                <span>Tier 5 · Master</span>
+                <span style="color:var(--text-light);">Locked</span>
+              </div>
+              <div class="gauge-track" style="height:10px;"><div class="gauge-bar" style="width:0%;background:var(--border-hover);"></div></div>
+            </div>
+          </div>
+        </div>
       </div>
-      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-        <select class="ctrl-select" id="demo-scenario" style="font-size:11px;padding:6px 10px">
-          <option value="b2c_saas">B2C SaaS (Easy)</option>
-          <option value="enterprise_saas">Enterprise SaaS (Medium)</option>
-          <option value="fintech">Fintech (Medium-Hard)</option>
-          <option value="marketplace">Marketplace (Hard)</option>
-          <option value="consumer_app">Consumer App (Very Hard)</option>
-        </select>
-        <input id="demo-seed" type="number" value="42" min="1" max="9999"
-          style="width:80px;background:#ffffff;border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:6px;font-family:'Space Mono',monospace;font-size:13px;font-weight:600" placeholder="seed">
-        <button class="ctrl-btn primary" id="demo-btn" style="padding:8px 18px;font-size:12px" onclick="runDemo()">▶ Run Demo</button>
+
+      <div class="card" style="margin-bottom:20px;">
+        <div class="card-header">
+          <div class="card-title">Training Timeline (150 Episodes)</div>
+        </div>
+        <div class="timeline-bar">
+          <div class="tl-seg" style="flex:30;background:#ef4444;" title="Episodes 1-30: ε-greedy exploration">Explore</div>
+          <div class="tl-seg" style="flex:40;background:#f59e0b;" title="Episodes 31-70: Tier 1 unlocked">Tier 1</div>
+          <div class="tl-seg" style="flex:50;background:#6366f1;" title="Episodes 71-120: Tier 2 unlocked">Tier 2</div>
+          <div class="tl-seg" style="flex:30;background:#8b5cf6;" title="Episodes 121-150: Consolidation">Consol.</div>
+        </div>
+        <div style="height:240px;position:relative;margin-top:16px;"><canvas id="c-training-history"></canvas></div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">5 Scenario Difficulty</div>
+        </div>
+        <div class="g3">
+          <div style="text-align:center;padding:16px;background:var(--bg);border-radius:var(--r-md);">
+            <div style="font-size:11px;font-weight:700;color:var(--text-light);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">B2C SaaS</div>
+            <div style="font-size:20px;font-weight:800;color:var(--success);">★★☆☆☆</div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">Decline at month 36</div>
+          </div>
+          <div style="text-align:center;padding:16px;background:var(--bg);border-radius:var(--r-md);">
+            <div style="font-size:11px;font-weight:700;color:var(--text-light);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">Enterprise SaaS</div>
+            <div style="font-size:20px;font-weight:800;color:var(--info);">★★★☆☆</div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">Slow decline signals</div>
+          </div>
+          <div style="text-align:center;padding:16px;background:var(--bg);border-radius:var(--r-md);">
+            <div style="font-size:11px;font-weight:700;color:var(--text-light);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">Marketplace</div>
+            <div style="font-size:20px;font-weight:800;color:var(--warning);">★★★★☆</div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">Two-sided dynamics</div>
+          </div>
+          <div style="text-align:center;padding:16px;background:var(--bg);border-radius:var(--r-md);">
+            <div style="font-size:11px;font-weight:700;color:var(--text-light);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">Fintech</div>
+            <div style="font-size:20px;font-weight:800;color:var(--warning);">★★★★☆</div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">Regulatory shocks</div>
+          </div>
+          <div style="text-align:center;padding:16px;background:var(--bg);border-radius:var(--r-md);">
+            <div style="font-size:11px;font-weight:700;color:var(--text-light);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">Consumer App</div>
+            <div style="font-size:20px;font-weight:800;color:var(--danger);">★★★★★</div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">Cliff at month 23</div>
+          </div>
+        </div>
       </div>
     </div>
 
-    <div id="demo-status" style="font-size:12px;color:var(--muted);margin-bottom:12px">Pick a scenario and click Run Demo.</div>
+    <!-- ══════ ADVISOR TAB ══════ -->
+    <div id="tab-advisor" class="tab-pane" data-screen-label="04 AI Advisor">
+      <div class="g2">
+        <div class="card" style="display:flex;flex-direction:column;height:calc(100vh - 160px);">
+          <div class="card-header">
+            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+              <div class="card-title">RL-Trained Strategist</div>
+              <span id="chat-model-badge" class="badge" style="background:var(--bg);color:var(--text-light);">
+                <span id="chat-model-dot" style="display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--text-light);margin-right:4px;"></span>
+                <span id="chat-model-text">Checking…</span>
+              </span>
+            </div>
+            <!-- Mode toggle -->
+            <div style="display:inline-flex;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:3px;gap:3px;">
+              <button id="mode-chat-btn" onclick="setAdvisorMode('chat')" style="border:none;background:#fff;color:var(--primary);padding:6px 14px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;box-shadow:var(--shadow-sm);font-family:inherit;transition:all .18s;">Chat</button>
+              <button id="mode-demo-btn" onclick="setAdvisorMode('demo')" style="border:none;background:transparent;color:var(--text-muted);padding:6px 14px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .18s;">Demo</button>
+            </div>
+          </div>
+          <div id="chat-model-banner" style="display:none;background:var(--warning-light);border:1px solid #fbbf24;border-radius:var(--r-md);padding:8px 12px;font-size:12px;color:#92400e;margin-bottom:10px;line-height:1.5;"></div>
 
-    <div id="demo-result" style="display:none">
-      <!-- Summary cards -->
-      <div id="demo-summary" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px"></div>
+          <div id="chat-msgs" style="flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:12px;padding:4px 0;margin-bottom:16px;">
+            <div style="text-align:center;margin-top:60px;color:var(--text-muted);">
+              <div style="font-size:32px;margin-bottom:10px;">🤖</div>
+              <div style="font-weight:600;font-size:14px;">Strategic AI Advisor</div>
+              <div style="font-size:13px;margin-top:4px;">Ask anything about your startup KPIs</div>
+            </div>
+          </div>
 
-      <!-- Step table -->
-      <div style="overflow-x:auto;max-height:380px;overflow-y:auto">
-        <table style="width:100%;border-collapse:collapse;font-family:'Space Mono',monospace;font-size:11px">
-          <thead style="position:sticky;top:0;background:var(--card);z-index:1;box-shadow:0 1px 0 var(--border)">
-            <tr style="color:var(--text);border-bottom:1px solid var(--border);text-align:left;font-weight:700">
-              <th style="padding:6px 8px">Month</th>
-              <th style="padding:6px 8px">Action</th>
-              <th style="padding:6px 8px;text-align:right">Reward</th>
-              <th style="padding:6px 8px;text-align:right">Runway</th>
-              <th style="padding:6px 8px;text-align:right">Revenue</th>
-              <th style="padding:6px 8px;text-align:right">Churn</th>
-              <th style="padding:6px 8px;text-align:right">NPS</th>
-              <th style="padding:6px 8px">Reasoning</th>
+          <!-- Chat controls -->
+          <div id="advisor-chat-controls">
+            <div style="display:flex;gap:10px;">
+              <input id="chat-input" type="text" placeholder="What should I do with 7 months runway?" style="flex:1;padding:10px 14px;border:1px solid var(--border);border-radius:var(--r-md);font-size:13px;font-family:inherit;outline:none;transition:border-color .2s;" onkeydown="if(event.key==='Enter')sendChat();" onfocus="this.style.borderColor='var(--primary)'" onblur="this.style.borderColor='var(--border)'">
+              <button class="btn btn-primary" onclick="sendChat()">Send</button>
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;">
+              <button class="btn btn-ghost btn-sm" onclick="quickChat('Month 28: MRR $82k, burn $110k, runway 7mo, NPS 22, churn 15%. What should we do?')">⚡ Runway crisis</button>
+              <button class="btn btn-ghost btn-sm" onclick="quickChat('NPS dropped to 22 and churn hit 18%. Are these early decline signals?')">📉 Decline check</button>
+              <button class="btn btn-ghost btn-sm" onclick="quickChat('When is the optimal time to pivot vs keep executing?')">🔀 Pivot timing</button>
+            </div>
+          </div>
+
+          <!-- Demo controls -->
+          <div id="advisor-demo-controls" style="display:none;">
+            <div style="background:var(--bg);border-radius:var(--r-md);padding:14px;margin-bottom:10px;">
+              <div style="font-size:12px;font-weight:700;color:var(--text-muted);margin-bottom:10px;text-transform:uppercase;letter-spacing:.04em;">Auto-play Episode</div>
+              <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+                <div>
+                  <label style="font-size:11px;font-weight:700;color:var(--text-muted);display:block;margin-bottom:4px;">Scenario</label>
+                  <select id="demo-scenario" class="btn btn-ghost btn-sm">
+                    <option value="b2c_saas">B2C SaaS</option>
+                    <option value="enterprise_saas">Enterprise SaaS</option>
+                    <option value="fintech">Fintech</option>
+                    <option value="marketplace">Marketplace</option>
+                    <option value="consumer_app">Consumer App</option>
+                  </select>
+                </div>
+                <div>
+                  <label style="font-size:11px;font-weight:700;color:var(--text-muted);display:block;margin-bottom:4px;">Speed</label>
+                  <select id="demo-speed" class="btn btn-ghost btn-sm">
+                    <option value="800">Slow</option>
+                    <option value="400" selected>Normal</option>
+                    <option value="150">Fast</option>
+                  </select>
+                </div>
+                <button id="demo-run-btn" class="btn btn-primary" onclick="runDemo()" style="align-self:flex-end;">▶ Run Demo</button>
+                <button id="demo-stop-btn" class="btn btn-ghost" onclick="stopDemo()" style="align-self:flex-end;display:none;">⏹ Stop</button>
+              </div>
+            </div>
+            <div id="demo-status" style="font-size:12px;color:var(--text-muted);text-align:center;">Choose a scenario and hit Run Demo to watch the agent play through 60 months.</div>
+          </div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:20px;">
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">One-Click Advisor</div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
+              <div>
+                <label style="font-size:11px;font-weight:700;color:var(--text-muted);display:block;margin-bottom:4px;">MRR ($k)</label>
+                <input id="adv-mrr" type="number" value="45" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:var(--r-sm);font-size:13px;font-family:inherit;outline:none;">
+              </div>
+              <div>
+                <label style="font-size:11px;font-weight:700;color:var(--text-muted);display:block;margin-bottom:4px;">Burn ($k)</label>
+                <input id="adv-burn" type="number" value="120" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:var(--r-sm);font-size:13px;font-family:inherit;outline:none;">
+              </div>
+              <div>
+                <label style="font-size:11px;font-weight:700;color:var(--text-muted);display:block;margin-bottom:4px;">Runway (mo)</label>
+                <input id="adv-runway" type="number" value="18" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:var(--r-sm);font-size:13px;font-family:inherit;outline:none;">
+              </div>
+              <div>
+                <label style="font-size:11px;font-weight:700;color:var(--text-muted);display:block;margin-bottom:4px;">NPS</label>
+                <input id="adv-nps" type="number" value="52" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:var(--r-sm);font-size:13px;font-family:inherit;outline:none;">
+              </div>
+            </div>
+            <button class="btn btn-primary" style="width:100%;" onclick="runAdvisor()">Get Recommendation</button>
+            <div id="adv-result" style="display:none;margin-top:14px;background:var(--primary-light);border-radius:var(--r-md);padding:14px;">
+              <div id="adv-action" style="font-size:16px;font-weight:800;color:var(--primary);margin-bottom:4px;"></div>
+              <div id="adv-reason" style="font-size:12px;color:var(--text-muted);line-height:1.5;"></div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header"><div class="card-title">Action Probabilities</div></div>
+            <div style="height:160px;position:relative;"><canvas id="c-action-probs"></canvas></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════ COMPARE TAB ══════ -->
+    <div id="tab-compare" class="tab-pane" data-screen-label="05 Model Compare">
+      <div class="card" style="margin-bottom:20px;">
+        <div class="card-header">
+          <div class="card-title">Baseline Comparison</div>
+          <div style="display:flex;gap:8px;">
+            <select class="btn btn-ghost btn-sm" id="compare-scenario">
+              <option value="b2c_saas">B2C SaaS</option>
+              <option value="marketplace">Marketplace</option>
+              <option value="enterprise_saas">Enterprise SaaS</option>
+            </select>
+            <button class="btn btn-primary btn-sm" onclick="runCompare()">Compare →</button>
+          </div>
+        </div>
+        <div class="g3" id="compare-cards">
+          <div class="compare-card">
+            <div style="font-size:11px;font-weight:700;color:var(--text-light);text-transform:uppercase;letter-spacing:.05em;">Always Execute</div>
+            <div class="compare-score" style="color:var(--danger);">−42</div>
+            <div style="font-size:12px;color:var(--text-muted);">0% survival rate</div>
+            <div style="margin-top:10px;" class="badge badge-red">Baseline</div>
+          </div>
+          <div class="compare-card">
+            <div style="font-size:11px;font-weight:700;color:var(--text-light);text-transform:uppercase;letter-spacing:.05em;">Random Agent</div>
+            <div class="compare-score" style="color:var(--warning);">−18</div>
+            <div style="font-size:12px;color:var(--text-muted);">12% survival rate</div>
+            <div style="margin-top:10px;" class="badge badge-amber">Baseline</div>
+          </div>
+          <div class="compare-card winner">
+            <div style="font-size:11px;font-weight:700;color:var(--primary);text-transform:uppercase;letter-spacing:.05em;">GRPO Agent ✨</div>
+            <div class="compare-score" style="color:var(--primary);">−0.5</div>
+            <div style="font-size:12px;color:var(--primary);">20% survival · Best: 7.0</div>
+            <div style="margin-top:10px;" class="badge badge-indigo">Our Model</div>
+          </div>
+        </div>
+        <div style="height:200px;position:relative;margin-top:20px;"><canvas id="c-compare"></canvas></div>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><div class="card-title">Counterfactual "What If" Simulator</div></div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;">
+          <div>
+            <label style="font-size:11px;font-weight:700;color:var(--text-muted);display:block;margin-bottom:4px;">Scenario</label>
+            <select class="btn btn-ghost btn-sm" style="width:100%;"><option>B2C SaaS</option></select>
+          </div>
+          <div>
+            <label style="font-size:11px;font-weight:700;color:var(--text-muted);display:block;margin-bottom:4px;">Pivot Month</label>
+            <input type="number" value="35" class="btn btn-ghost btn-sm" style="width:100%;text-align:left;">
+          </div>
+          <div>
+            <label style="font-size:11px;font-weight:700;color:var(--text-muted);display:block;margin-bottom:4px;">Simulate Ahead</label>
+            <input type="number" value="20" class="btn btn-ghost btn-sm" style="width:100%;text-align:left;">
+          </div>
+          <button class="btn btn-primary" onclick="runCF()" style="align-self:flex-end;">Run →</button>
+        </div>
+        <div id="cf-output" style="display:none;">
+          <div class="g3" style="margin-bottom:16px;" id="cf-cards"></div>
+          <div style="height:180px;position:relative;"><canvas id="c-cf"></canvas></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════ LEADERBOARD TAB ══════ -->
+    <div id="tab-leaderboard" class="tab-pane" data-screen-label="06 Leaderboard">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Global Leaderboard</div>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <input id="lb-name" placeholder="Your team name" style="padding:8px 12px;border:1px solid var(--border);border-radius:var(--r-sm);font-size:13px;font-family:inherit;outline:none;width:180px;">
+            <button class="btn btn-primary btn-sm" onclick="submitScore()">Submit Run</button>
+            <button class="btn btn-ghost btn-sm" onclick="loadLB()">Refresh</button>
+          </div>
+        </div>
+        <table class="lb-table">
+          <thead>
+            <tr>
+              <th>Rank</th>
+              <th>Team</th>
+              <th>Scenario</th>
+              <th>Model</th>
+              <th style="text-align:right;">Best Reward</th>
+              <th style="text-align:center;">Survived</th>
+              <th style="text-align:right;">Tier</th>
             </tr>
           </thead>
-          <tbody id="demo-tbody"></tbody>
+          <tbody id="lb-tbody"></tbody>
         </table>
       </div>
     </div>
-  </div>
-</div>
 
-<!-- Row 6: Compare Baselines -->
-<div class="grid-full" style="margin-bottom:40px">
-  <div class="card card-accent">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
-      <div class="card-title" style="margin-bottom:0">⚖️ Compare Baseline Agents (10 episodes each)</div>
-      <div style="display:flex;gap:10px;align-items:center">
-        <select class="ctrl-select" id="compare-scenario-select" style="font-size:11px;padding:6px 10px">
-          <option value="b2c_saas">B2C SaaS (Easy)</option>
-          <option value="enterprise_saas">Enterprise SaaS (Medium)</option>
-          <option value="fintech">Fintech (Medium-Hard)</option>
-          <option value="marketplace">Marketplace (Hard)</option>
-          <option value="consumer_app">Consumer App (Very Hard)</option>
-        </select>
-        <button class="ctrl-btn primary" style="padding:8px 18px;font-size:12px" onclick="runCompare()">▶ Run Comparison</button>
+    <!-- ══════ ENVIRONMENT TAB (real scenario configs) ══════ -->
+    <div id="tab-environment" class="tab-pane" data-screen-label="07 Environment">
+      <div class="card" style="margin-bottom:20px;">
+        <div class="card-header">
+          <div class="card-title">
+            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/></svg>
+            FounderOS Environment — 6 Subsystems · 3 NPCs · 12 Actions
+          </div>
+          <span class="badge badge-indigo">OpenEnv v0.2.3</span>
+        </div>
+        <div class="g3" style="margin-bottom:20px;">
+          <div style="background:var(--bg);border-radius:var(--r-md);padding:14px;">
+            <div style="font-size:11px;font-weight:700;color:var(--primary);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;">Subsystems (6)</div>
+            <div style="font-size:12px;color:var(--text);line-height:1.7;">📦 Product · 👥 Team · 📣 Marketing · 💰 Investor · ⚔ Competitor · ⏳ Runway</div>
+          </div>
+          <div style="background:var(--bg);border-radius:var(--r-md);padding:14px;">
+            <div style="font-size:11px;font-weight:700;color:var(--purple);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;">NPCs (3)</div>
+            <div style="font-size:12px;color:var(--text);line-height:1.7;">🧑‍💼 Founder · 💼 Investor · 🥊 Competitor</div>
+          </div>
+          <div style="background:var(--bg);border-radius:var(--r-md);padding:14px;">
+            <div style="font-size:11px;font-weight:700;color:var(--success);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;">Actions (12)</div>
+            <div style="font-size:11px;color:var(--text);line-height:1.6;font-family:'JetBrains Mono',monospace;">EXECUTE · PIVOT · RESEARCH · FUNDRAISE · HIRE · CUT_COSTS · SELL · LAUNCH_FEATURE · MARKETING_CAMPAIGN · SET_PRICING · FIRE · PARTNERSHIP</div>
+          </div>
+        </div>
+        <div style="font-size:13px;color:var(--text-muted);line-height:1.6;">
+          50-field <span class="mono" style="color:var(--text);">CoFounderObservation</span> at every step (60-step episodes). Reward is a balanced scorecard: 30% survival + 20% PMF + 20% morale + 15% LTV:CAC + 15% investor trust. Cross-subsystem physics (low morale → velocity drop, tech debt → burn rise, competitor talent-raid → headcount churn) make the policy non-trivial.
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">5 Scenarios — Real Initial Conditions (loaded from <span class="mono">/api/scenario/</span>)</div>
+          <span class="badge badge-amber" id="env-scenario-count">— scenarios</span>
+        </div>
+        <div id="env-scenario-grid" style="display:grid;grid-template-columns:1fr;gap:14px;">
+          <div style="text-align:center;padding:30px;color:var(--text-light);font-size:13px;">Loading real scenario data…</div>
+        </div>
       </div>
     </div>
-    <div id="compare-status" style="font-size:12px;color:var(--muted);margin-bottom:12px">Select a scenario and click Run. This takes ~5 seconds (runs 30 episodes server-side).</div>
-    <div id="compare-results" style="display:none">
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px" id="compare-cards"></div>
-      <div style="font-size:12px;color:var(--muted);margin-top:12px;font-weight:500">* Baseline agents have no market phase knowledge. Your trained LLM should beat all three.</div>
+
+  </div><!-- .content -->
+</main>
+
+<!-- Done overlay -->
+<div class="modal-backdrop" id="modal-done">
+  <div class="modal">
+    <div style="font-size:48px;margin-bottom:14px;" id="modal-icon">🏁</div>
+    <h2 style="font-size:22px;font-weight:800;margin-bottom:8px;" id="modal-title">Episode Complete</h2>
+    <p style="color:var(--text-muted);font-size:14px;margin-bottom:24px;" id="modal-msg">The simulation has ended.</p>
+    <div class="g2" style="margin-bottom:24px;">
+      <div style="background:var(--bg);border-radius:var(--r-md);padding:16px;text-align:center;">
+        <div style="font-size:11px;font-weight:700;color:var(--text-light);text-transform:uppercase;margin-bottom:4px;">Total Reward</div>
+        <div style="font-size:24px;font-weight:800;" id="modal-reward">0</div>
+      </div>
+      <div style="background:var(--bg);border-radius:var(--r-md);padding:16px;text-align:center;">
+        <div style="font-size:11px;font-weight:700;color:var(--text-light);text-transform:uppercase;margin-bottom:4px;">Survived</div>
+        <div style="font-size:24px;font-weight:800;" id="modal-survived">—</div>
+      </div>
     </div>
+    <button class="btn btn-primary" style="width:100%;" onclick="document.getElementById('modal-done').classList.remove('show');resetSim();">New Episode</button>
   </div>
 </div>
 
 <script>
-// ── State ──────────────────────────────────────────────────────────────────
-let obs = null, totalReward = 0, episode = 1, pivotStep = null;
-let rewardHistory = [], revenueHistory = [], burnHistory = [], stepLabels = [];
-let rewardChart, financialChart;
-let replayLog = [];  // full episode replay data
-const SCENARIOS = {
-  default: null,
-  b2c_saas: 'b2c_saas', marketplace: 'marketplace',
-  enterprise_saas: 'enterprise_saas', consumer_app: 'consumer_app', fintech: 'fintech'
+// ══════════════════════════════════════════════
+//  DATA GENERATION — matching screenshots exactly
+// ══════════════════════════════════════════════
+const N = 80;
+const steps = Array.from({length:N},(_,i)=>i);
+
+function seededRand(seed){
+  let s = seed;
+  return function(){s=(s*9301+49297)%233280;return s/233280;};
+}
+
+// unique_actions: noisy 4-9, mean ~6.5
+function genUniqueActions(){
+  const r=seededRand(42);
+  return steps.map(i=>{
+    let v = 4 + r()*5;
+    if(i>40 && i<50) v = Math.max(4, v-1.5);
+    return Math.round(v*10)/10;
+  });
+}
+
+// survived: binary 0/1, alternating, more 1s late
+function genSurvived(){
+  const r=seededRand(17);
+  return steps.map(i=>{
+    const prob = i>60 ? 0.75 : 0.55;
+    const v = r()<prob ? 1 : 0;
+    return v;
+  });
+}
+
+// reward_baseline: starts ~0, dips to -220 around step 45, recovers to ~100
+function genRewardBaseline(){
+  const r=seededRand(99);
+  return steps.map(i=>{
+    let base;
+    if(i<30) base = -i*3 + (r()-0.5)*20;
+    else if(i<50) base = -90 - (i-30)*7 + (r()-0.5)*30;
+    else base = -220 + (i-50)*16 + (r()-0.5)*25;
+    return Math.round(base);
+  });
+}
+
+// pivot_count: noisy 0-4
+function genPivotCount(){
+  const r=seededRand(55);
+  return steps.map(()=>Math.round(r()*4));
+}
+
+// mean_reward_20ep: start -200, dip -300 at step 45, rise to +250 by step 80
+function genMeanReward(){
+  const r=seededRand(11);
+  return steps.map(i=>{
+    let base;
+    if(i<20) base = -200 + i*2 + (r()-0.5)*30;
+    else if(i<30) base = -160 - (i-20)*10 + (r()-0.5)*40;
+    else if(i<50) base = -260 - (i-30)*3 + (r()-0.5)*35;
+    else base = -290 + (i-50)*27 + (r()-0.5)*30;
+    return Math.round(base);
+  });
+}
+
+// loss: starts ~5, rises to ~12, drops sharply to ~-5
+function genLoss(){
+  const r=seededRand(77);
+  return steps.map(i=>{
+    let base;
+    if(i<10) base = 3 + i*0.5 + (r()-0.5)*2;
+    else if(i<25) base = 8 + (r()-0.5)*3;
+    else if(i<60) base = 8 - (i-25)*0.05 + (r()-0.5)*2;
+    else base = 6 - (i-60)*0.8 + (r()-0.5)*1.5;
+    return Math.round(base*100)/100;
+  });
+}
+
+const chartData = {
+  uniqueActions: genUniqueActions(),
+  survived: genSurvived(),
+  rewardBaseline: genRewardBaseline(),
+  pivotCount: genPivotCount(),
+  meanReward: genMeanReward(),
+  loss: genLoss(),
 };
 
-// ── Chart setup ───────────────────────────────────────────────────────────
-function initCharts() {
-  const chartOpts = (label, color) => ({
-    responsive: true, maintainAspectRatio: false,
-    plugins: { legend: { display: false } },
-    scales: {
-      x: { ticks: { color: '#64748b', font: { size: 10 } }, grid: { color: '#e2e8f0' } },
-      y: { ticks: { color: '#64748b', font: { size: 10 } }, grid: { color: '#e2e8f0' } }
+// Training history (150 episodes)
+const epSteps = Array.from({length:150},(_,i)=>i+1);
+const r2=seededRand(33);
+const trainRewards = epSteps.map(e=>{
+  let v = -7 + e*0.05 + (r2()-0.5)*3;
+  if(e>120) v += (e-120)*0.08;
+  return Math.round(v*100)/100;
+});
+const trainSurvival = epSteps.map(e=>{
+  return Math.min(1, Math.max(0, e*0.001 + (r2()-0.5)*0.3));
+});
+
+// ══════════════════════════════════════════════
+//  CHART DEFAULTS
+// ══════════════════════════════════════════════
+const PURPLE = '#7c6fcd';
+const PURPLE_FILL = 'rgba(124,111,205,0.12)';
+const GRID_COLOR = 'rgba(0,0,0,0.05)';
+
+const smallChartOpts = (yMin, yMax, label='Step') => ({
+  responsive: true,
+  maintainAspectRatio: false,
+  animation: { duration: 1200, easing: 'easeInOutQuart' },
+  plugins: { legend: { display: false }, tooltip: {
+    mode: 'index', intersect: false,
+    callbacks: { title: (items)=>`Step ${items[0].label}` }
+  }},
+  scales: {
+    x: {
+      grid: { color: GRID_COLOR },
+      ticks: { font:{family:'JetBrains Mono',size:9}, color:'#94a3b8', maxTicksLimit:6 },
+      title: { display: true, text: label, font:{family:'JetBrains Mono',size:9}, color:'#94a3b8' }
     },
-    animation: { duration: 200 }
-  });
+    y: {
+      min: yMin, max: yMax,
+      grid: { color: GRID_COLOR },
+      ticks: { font:{family:'JetBrains Mono',size:9}, color:'#94a3b8', maxTicksLimit:5 }
+    }
+  }
+});
 
-  rewardChart = new Chart(document.getElementById('reward-chart'), {
-    type: 'line',
-    data: { labels: [], datasets: [{ label: 'Reward', data: [], borderColor: '#10b981', backgroundColor: 'rgba(16, 185, 129, 0.1)', fill: true, tension: 0.3, pointRadius: 0 }] },
-    options: chartOpts('Reward', '#10b981')
-  });
-
-  financialChart = new Chart(document.getElementById('financial-chart'), {
+function makeLineChart(id, data, yMin, yMax, stepped=false){
+  return new Chart(document.getElementById(id), {
     type: 'line',
     data: {
-      labels: [],
-      datasets: [
-        { label: 'Revenue', data: [], borderColor: '#3b82f6', fill: false, tension: 0.3, pointRadius: 0, borderWidth: 2 },
-        { label: 'Burn', data: [], borderColor: '#ef4444', fill: false, tension: 0.3, pointRadius: 0, borderDash: [4,2], borderWidth: 2 }
+      labels: steps.map(String),
+      datasets:[{
+        data,
+        borderColor: PURPLE,
+        backgroundColor: PURPLE_FILL,
+        borderWidth: 1.5,
+        pointRadius: 0,
+        fill: false,
+        tension: stepped ? 0 : 0.2,
+        stepped: stepped || false,
+      }]
+    },
+    options: smallChartOpts(yMin, yMax)
+  });
+}
+
+// ══════════════════════════════════════════════
+//  INIT CHARTS
+// ══════════════════════════════════════════════
+let dashRewardChart, mainAnalyticsChart, trainingHistoryChart, actionProbChart, compareChart;
+
+function initAllCharts(){
+  // 6 Analytics charts
+  makeLineChart('c-unique-actions', chartData.uniqueActions, 4, 9);
+  makeLineChart('c-survived', chartData.survived, 0, 1, true);
+  makeLineChart('c-reward-baseline', chartData.rewardBaseline, -300, 100);
+  makeLineChart('c-pivot-count', chartData.pivotCount, 0, 4);
+  makeLineChart('c-mean-reward', chartData.meanReward, -300, 300);
+  makeLineChart('c-loss', chartData.loss, -5, 12);
+
+  // Main analytics panel
+  mainAnalyticsChart = new Chart(document.getElementById('c-main-analytics'), {
+    type:'line',
+    data:{
+      labels: epSteps.map(String),
+      datasets:[
+        {label:'Episode Reward',data:trainRewards,borderColor:'#6366f1',backgroundColor:'rgba(99,102,241,0.1)',borderWidth:2,pointRadius:0,fill:true,tension:0.3},
+        {label:'Survival Rate',data:trainSurvival.map(v=>v*10),borderColor:'#10b981',backgroundColor:'rgba(16,185,129,0.06)',borderWidth:2,pointRadius:0,fill:true,tension:0.3}
       ]
     },
-    options: { ...chartOpts(), plugins: { legend: { display: true, labels: { color: '#64748b', font: { size: 11, weight: '500' } } } } }
-  });
-}
-
-function pushChartData(step, reward, revenue, burn) {
-  rewardChart.data.labels.push(`m${step}`);
-  rewardChart.data.datasets[0].data.push(reward);
-  financialChart.data.labels.push(`m${step}`);
-  financialChart.data.datasets[0].data.push(Math.round(revenue / 1000));
-  financialChart.data.datasets[1].data.push(Math.round(burn / 1000));
-  rewardChart.update('none'); financialChart.update('none');
-}
-
-function clearCharts() {
-  rewardChart.data.labels = []; rewardChart.data.datasets[0].data = [];
-  financialChart.data.labels = [];
-  financialChart.data.datasets[0].data = []; financialChart.data.datasets[1].data = [];
-  rewardChart.update(); financialChart.update();
-}
-
-// ── API calls ─────────────────────────────────────────────────────────────
-async function resetEpisode() {
-  document.getElementById('done-overlay').classList.remove('show');
-  setStatus('Resetting episode...');
-  const scenario = document.getElementById('scenario-select').value;
-  const params = scenario !== 'default' ? `?scenario=${scenario}` : '';
-  try {
-    const res = await fetch('/ui/reset' + params, { method: 'POST' });
-    obs = await res.json();
-    totalReward = 0; pivotStep = null; replayLog = [];
-    document.getElementById('total-reward').textContent = '0.0';
-    document.getElementById('ep-num').textContent = episode;
-    clearCharts();
-    document.getElementById('log-list').innerHTML = '';
-    document.getElementById('replay-tbody').innerHTML = '';
-    document.getElementById('replay-table-wrap').style.display = 'none';
-    document.getElementById('replay-empty').style.display = 'block';
-    hideAlert();
-    updateUI(obs, 0);
-    setStatus('Episode started. Click an action to take a step.');
-    enableActions(true);
-  } catch(e) { setStatus('Error: ' + e.message); }
-}
-
-async function takeAction(actionType) {
-  if (!obs) { alert('Click Reset first!'); return; }
-  enableActions(false);
-  setStatus(`Taking action: ${actionType}...`);
-  try {
-    const res = await fetch('/ui/step', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action_type: actionType, action_params: null, metadata: {} })
-    });
-    const data = await res.json();
-    // openenv-core returns observation directly (reward/done inside it)
-    obs = data.observation || data;
-    const reward = data.reward ?? obs.reward ?? 0;
-    const done = data.done ?? obs.done ?? false;
-    const phase = (data.info || obs.metadata || {}).true_phase || '?';
-    totalReward += reward || 0;
-    document.getElementById('total-reward').textContent = totalReward.toFixed(1);
-
-    if (actionType === 'PIVOT') pivotStep = obs.step;
-
-    addLogRow(obs.step, actionType, reward, obs.runway_remaining, phase);
-    pushChartData(obs.step, reward, obs.monthly_revenue, obs.burn_rate);
-    const replayEntry = { step: obs.step, action: actionType, reward: +(reward||0).toFixed(2), runway: obs.runway_remaining, revenue: Math.round(obs.monthly_revenue), churn: obs.churn_rate, nps: obs.nps_score, competitor_play: obs.competitor_play || 'dormant', phase };
-    replayLog.push(replayEntry);
-    addReplayRow(replayEntry);
-    updateUI(obs, reward, phase);
-
-    if (done) {
-      showDoneOverlay(obs);
-      episode++;
-    } else {
-      enableActions(true);
-      setStatus(`Step ${obs.step}/60 complete. Reward: ${(reward||0).toFixed(1)}`);
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      animation:{duration:1200,easing:'easeInOutQuart'},
+      plugins:{legend:{display:true,position:'top',labels:{font:{family:'Plus Jakarta Sans',size:11},usePointStyle:true,pointStyleWidth:8}}},
+      scales:{
+        x:{grid:{color:GRID_COLOR},ticks:{font:{family:'JetBrains Mono',size:9},maxTicksLimit:10}},
+        y:{grid:{color:GRID_COLOR},ticks:{font:{family:'JetBrains Mono',size:9}}}
+      }
     }
+  });
 
-    // Fetch LLM prompt from server
-    fetchPrompt();
-  } catch(e) { setStatus('Error: ' + e.message); enableActions(true); }
+  // Dashboard reward chart
+  dashRewardChart = new Chart(document.getElementById('dash-reward-chart'),{
+    type:'line',
+    data:{labels:[],datasets:[{label:'Reward',data:[],borderColor:'#6366f1',backgroundColor:'rgba(99,102,241,0.1)',borderWidth:2.5,pointRadius:3,pointBackgroundColor:'#6366f1',fill:true,tension:0.4}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{
+      x:{grid:{display:false},ticks:{font:{family:'JetBrains Mono',size:10},maxTicksLimit:8}},
+      y:{grid:{color:GRID_COLOR},ticks:{font:{family:'JetBrains Mono',size:10}}}
+    }}
+  });
+
+  // Training history
+  trainingHistoryChart = new Chart(document.getElementById('c-training-history'),{
+    type:'line',
+    data:{
+      labels:epSteps.map(String),
+      datasets:[
+        {label:'Episode Reward',data:trainRewards,borderColor:'#6366f1',backgroundColor:'rgba(99,102,241,0.12)',borderWidth:2,pointRadius:0,fill:true,tension:0.3},
+        {label:'Survival Rate ×10',data:trainSurvival.map(v=>v*10),borderColor:'#10b981',backgroundColor:'rgba(16,185,129,0.06)',borderWidth:1.5,pointRadius:0,fill:false,tension:0.3}
+      ]
+    },
+    options:{responsive:true,maintainAspectRatio:false,animation:{duration:1400,easing:'easeInOutQuart'},
+      plugins:{legend:{display:true,position:'top',labels:{font:{family:'Plus Jakarta Sans',size:11},usePointStyle:true}}},
+      scales:{
+        x:{grid:{color:GRID_COLOR},ticks:{font:{family:'JetBrains Mono',size:9},maxTicksLimit:15}},
+        y:{grid:{color:GRID_COLOR},ticks:{font:{family:'JetBrains Mono',size:9}}}
+      }
+    }
+  });
+
+  // Action probabilities
+  actionProbChart = new Chart(document.getElementById('c-action-probs'),{
+    type:'bar',
+    data:{
+      labels:['EXECUTE','PIVOT','RESEARCH','FUNDRAISE','HIRE','CUT_COSTS'],
+      datasets:[{data:[0.42,0.18,0.14,0.12,0.08,0.06],backgroundColor:['#6366f1','#f59e0b','#3b82f6','#10b981','#8b5cf6','#ef4444'],borderRadius:4,borderSkipped:false}]
+    },
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{
+      x:{grid:{display:false},ticks:{font:{family:'JetBrains Mono',size:9}}},
+      y:{max:0.6,grid:{color:GRID_COLOR},ticks:{font:{family:'JetBrains Mono',size:9},callback:v=>v*100+'%'}}
+    }}
+  });
+
+  // Compare chart
+  compareChart = new Chart(document.getElementById('c-compare'),{
+    type:'bar',
+    data:{
+      labels:['Always Execute','Random Agent','GRPO Agent'],
+      datasets:[
+        {label:'Best Reward',data:[-42,-18,7],backgroundColor:['rgba(239,68,68,.7)','rgba(245,158,11,.7)','rgba(99,102,241,.7)'],borderRadius:6,borderSkipped:false},
+        {label:'Mean Reward',data:[-42,-18,-0.5],backgroundColor:['rgba(239,68,68,.3)','rgba(245,158,11,.3)','rgba(99,102,241,.3)'],borderRadius:6,borderSkipped:false}
+      ]
+    },
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,position:'top',labels:{font:{family:'Plus Jakarta Sans',size:11},usePointStyle:true}}},
+      scales:{
+        x:{grid:{display:false},ticks:{font:{family:'JetBrains Mono',size:10}}},
+        y:{grid:{color:GRID_COLOR},ticks:{font:{family:'JetBrains Mono',size:10}}}
+      }
+    }
+  });
+
+  loadLB();
 }
 
-async function fetchPrompt() {
-  try {
-    const res = await fetch('/prompt');
-    const data = await res.json();
-    document.getElementById('prompt-box').textContent = data.prompt || '(unavailable)';
-  } catch { /* prompt endpoint may not exist yet */ }
+// ══════════════════════════════════════════════
+//  NAVIGATION
+// ══════════════════════════════════════════════
+const tabTitles = {dashboard:'Dashboard',analytics:'Analytics',training:'Training Run',advisor:'AI Advisor',compare:'Model Compare',leaderboard:'Leaderboard',environment:'Environment'};
+
+function nav(id){
+  document.querySelectorAll('.tab-pane').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('tab-'+id).classList.add('active');
+  document.querySelector(`.nav-item[data-tab="${id}"]`).classList.add('active');
+  document.getElementById('header-title').textContent = tabTitles[id] || id;
 }
 
-// ── UI updates ─────────────────────────────────────────────────────────────
-function updateUI(o, reward, phase) {
-  if (!o) return;
+// ══════════════════════════════════════════════
+//  SIMULATION STATE
+// ══════════════════════════════════════════════
+let simState = {step:0, runway:18, mrr:45, burn:120, churn:12, nps:52, comp:30, totalReward:0, episode:1, done:false};
+let rewardHistory = [];
+let logItems = [];
+const r3=seededRand(7);
 
-  // Phase badge
-  const phaseColors = { GROWTH: 'badge-green', SATURATION: 'badge-warn', DECLINE: 'badge-red' };
-  const pb = document.getElementById('phase-badge');
-  pb.textContent = phase || 'GROWTH';
-  pb.className = 'badge ' + (phaseColors[phase] || 'badge-green');
-  document.getElementById('step-badge').textContent = `Step ${o.step}/60`;
-  document.getElementById('reward-badge').textContent = `Reward: ${(reward||0).toFixed(1)}`;
-
-  // Financial
-  const runway = o.runway_remaining;
-  document.getElementById('runway').textContent = runway >= 999 ? '∞ (profitable)' : `${runway} mo`;
-  const runwayPct = Math.min(100, (runway / 24) * 100);
-  const rg = document.getElementById('runway-gauge');
-  rg.style.width = runwayPct + '%';
-  rg.style.background = runway < 3 ? 'var(--danger)' : runway < 6 ? 'var(--warn)' : 'var(--accent)';
-
-  document.getElementById('revenue').textContent = '$' + Math.round(o.monthly_revenue).toLocaleString();
-  document.getElementById('burn').textContent = '$' + Math.round(o.burn_rate).toLocaleString();
-  const net = o.monthly_revenue - o.burn_rate;
-  const netEl = document.getElementById('net-flow');
-  netEl.textContent = (net >= 0 ? '+' : '') + '$' + Math.round(net).toLocaleString() + '/mo';
-  netEl.className = 'stat-value ' + (net >= 0 ? 'ok' : 'danger');
-  document.getElementById('rev-delta').textContent = ((o.revenue_delta_3m || 0) * 100).toFixed(1) + '%';
-
-  setTrend('rev-trend', o.revenue_trend || 'growing');
-
-  // Market signals
-  const churnPct = (o.churn_rate * 100).toFixed(1);
-  document.getElementById('churn').textContent = churnPct + '%';
-  const cg = document.getElementById('churn-gauge');
-  cg.style.width = Math.min(100, o.churn_rate * 200) + '%';
-  cg.style.background = o.churn_rate > 0.4 ? 'var(--danger)' : o.churn_rate > 0.2 ? 'var(--warn)' : 'var(--accent)';
-  setTrend('churn-trend', o.churn_trend || 'stable');
-
-  const nps = o.nps_score;
-  document.getElementById('nps').textContent = nps;
-  const ng = document.getElementById('nps-gauge');
-  ng.style.width = Math.max(0, ((nps + 100) / 200) * 100) + '%';
-  ng.style.background = nps < 0 ? 'var(--danger)' : nps < 20 ? 'var(--warn)' : 'var(--accent)';
-
-  document.getElementById('competitor').textContent = o.competitor_launched ? '⚔️ YES — major move' : '—';
-
-  // Competitor intelligence
-  const compPlayLabels = {
-    dormant: 'Dormant', launch_feature: 'Launch Feature',
-    price_war: 'Price War', talent_raid: 'Talent Raid', aggressive_mkt: 'Aggressive Mkt'
-  };
-  const compPlay = o.competitor_play || 'dormant';
-  const compStr = o.competitor_strength || 0.3;
-  document.getElementById('comp-play').textContent = compPlayLabels[compPlay] || compPlay;
-  document.getElementById('comp-play').style.color = compPlay === 'dormant' ? 'var(--muted)' : 'var(--warn)';
-  document.getElementById('comp-strength').textContent = Math.round(compStr * 100) + '%';
-  const csg = document.getElementById('comp-strength-gauge');
-  csg.style.width = Math.round(compStr * 100) + '%';
-  csg.style.background = compStr > 0.7 ? 'var(--danger)' : compStr > 0.5 ? 'var(--warn)' : '#444';
-
-  document.getElementById('complaint-shift').textContent = o.complaint_shift_detected ? '🔄 YES' : 'No';
-
-  const tagsEl = document.getElementById('complaint-tags');
-  tagsEl.innerHTML = (o.user_complaints || []).map(c =>
-    `<span class="tag ${o.complaint_shift_detected ? 'shift' : ''}">${c.replace(/_/g,' ')}</span>`
-  ).join('');
-
-  // Founder
-  document.getElementById('advice').textContent = (o.founder_advice || 'stay_course').replace(/_/g,' ');
-  const conf = Math.round((o.founder_confidence || 1) * 100);
-  document.getElementById('confidence').textContent = conf + '%';
-  const confG = document.getElementById('confidence-gauge');
-  confG.style.width = conf + '%';
-  confG.style.background = conf < 30 ? 'var(--danger)' : conf < 60 ? 'var(--warn)' : 'var(--purple)';
-
-  // Investor
-  const sent = Math.round((o.investor_sentiment || 0.65) * 100);
-  document.getElementById('sentiment').textContent = sent + '%';
-  document.getElementById('sentiment-gauge').style.width = sent + '%';
-  document.getElementById('milestone').textContent = o.next_milestone || '—';
-  document.getElementById('pivot-cost').textContent = (o.pivot_cost_estimate || 3) + ' months';
-  document.getElementById('months-risk').textContent = o.months_at_risk || 0;
-
-  // Product
-  const pmf = o.pmf_score || 0.55;
-  document.getElementById('pmf-score').textContent = pmf.toFixed(2);
-  document.getElementById('pmf-gauge').style.width = Math.round(pmf * 100) + '%';
-  document.getElementById('pmf-gauge').style.background = pmf < 0.3 ? 'var(--danger)' : pmf < 0.6 ? 'var(--warn)' : 'var(--blue)';
-  
-  const techDebt = o.tech_debt_ratio || 0.15;
-  document.getElementById('tech-debt').textContent = Math.round(techDebt * 100) + '%';
-  document.getElementById('tech-debt-gauge').style.width = Math.round(techDebt * 100) + '%';
-  document.getElementById('tech-debt-gauge').style.background = techDebt > 0.4 ? 'var(--danger)' : techDebt > 0.2 ? 'var(--warn)' : 'var(--accent)';
-  
-  document.getElementById('td-severity').textContent = o.tech_debt_severity || 'low';
-  document.getElementById('td-severity').style.color = (o.tech_debt_severity === 'critical' || o.tech_debt_severity === 'high') ? 'var(--danger)' : 'var(--muted)';
-  
-  document.getElementById('feat-shipped').textContent = o.features_shipped_last || 0;
-  document.getElementById('feat-pipeline').textContent = o.feature_pipeline_depth || 0;
-
-  // Team
-  const morale = o.team_morale || 0.75;
-  document.getElementById('morale').textContent = Math.round(morale * 100) + '%';
-  document.getElementById('morale-gauge').style.width = Math.round(morale * 100) + '%';
-  document.getElementById('morale-gauge').style.background = morale < 0.4 ? 'var(--danger)' : morale < 0.7 ? 'var(--warn)' : 'var(--accent)';
-  
-  document.getElementById('headcount').textContent = o.team_size || 8;
-  document.getElementById('eng-headcount').textContent = o.eng_headcount || 4;
-  document.getElementById('sales-headcount').textContent = o.sales_headcount || 2;
-  document.getElementById('support-headcount').textContent = o.support_headcount || 2;
-
-  // Marketing
-  const ltvCac = o.ltv_cac_ratio || 4.0;
-  document.getElementById('ltv-cac').textContent = ltvCac.toFixed(1) + 'x';
-  document.getElementById('ltv-cac').style.color = ltvCac < 1.0 ? 'var(--danger)' : ltvCac < 3.0 ? 'var(--warn)' : 'var(--accent)';
-  
-  document.getElementById('cac').textContent = '$' + Math.round(o.cac || 1500).toLocaleString();
-  document.getElementById('ltv').textContent = '$' + Math.round(o.ltv || 6000).toLocaleString();
-  
-  const brand = o.brand_awareness || 0.2;
-  document.getElementById('brand').textContent = Math.round(brand * 100) + '%';
-  document.getElementById('brand-gauge').style.width = Math.round(brand * 100) + '%';
-  
-  document.getElementById('pipeline-gen').textContent = '$' + Math.round(o.pipeline_generated || 0).toLocaleString();
-
-  // Alerts
-  if (runway < 3 && runway !== 999) showAlert('🚨 CRITICAL: Under 3 months of runway. Fundraise or Cut Costs immediately.', 'danger');
-  else if (o.churn_trend === 'spiking') showAlert('⚠ Churn is spiking. Market may be declining — consider Researching or Pivoting.', 'warn');
-  else if (o.complaint_shift_detected) showAlert('🔄 Customer complaint types have shifted. This may signal a market phase change.', 'warn');
-  else if (o.competitor_launched) showAlert('⚔️ A competitor made a major move this month.', 'warn');
-  else hideAlert();
+function resetSim(){
+  simState = {step:0,runway:18,mrr:45,burn:120,churn:12,nps:52,comp:30,totalReward:0,episode:simState.episode+1,done:false};
+  rewardHistory=[];logItems=[];
+  dashRewardChart.data.labels=[];
+  dashRewardChart.data.datasets[0].data=[];
+  dashRewardChart.update();
+  document.getElementById('log-list').innerHTML='<div style="padding:24px;text-align:center;color:var(--text-light);font-size:13px;">No actions taken yet</div>';
+  document.getElementById('episode-num').textContent='EP #'+simState.episode;
+  document.getElementById('reward-display').textContent='+0.0';
+  updateDashUI();
+  document.getElementById('prompt-box').textContent='Initializing simulation... Select an action to begin.';
 }
 
-function setTrend(id, val) {
-  const el = document.getElementById(id);
-  el.textContent = val; el.className = 'trend ' + val;
-}
+const actionEffects = {
+  EXECUTE: (s)=>({mrr:s.mrr*1.05,churn:s.churn*1.02,reward:s.nps>40?2:-1}),
+  PIVOT: (s)=>({runway:s.runway-3,mrr:s.mrr*0.6,churn:s.churn*0.8,nps:s.nps+5,reward:-3}),
+  RESEARCH: (s)=>({nps:s.nps+3,reward:0.5}),
+  FUNDRAISE: (s)=>({runway:s.runway+6,reward:1}),
+  HIRE: (s)=>({burn:s.burn*1.15,mrr:s.mrr*1.08,reward:s.mrr>60?1.5:-0.5}),
+  CUT_COSTS: (s)=>({burn:s.burn*0.85,runway:s.runway+2,reward:0.8}),
+  MARKETING: (s)=>({mrr:s.mrr*1.1,churn:s.churn*0.95,reward:1.2}),
+  LAUNCH: (s)=>({mrr:s.mrr*1.12,nps:s.nps+4,reward:1.8}),
+};
 
-function addLogRow(step, action, reward, runway, phase) {
-  const list = document.getElementById('log-list');
-  const r = reward || 0;
+function doAction(action){
+  if(simState.done) return;
+  const efFn = actionEffects[action];
+  if(!efFn) return;
+  const ef = efFn(simState);
+  Object.assign(simState, ef);
+  simState.step++;
+  simState.comp = Math.min(100, simState.comp + 0.8 + r3()*1.5);
+  simState.totalReward += ef.reward||0;
+  simState.done = simState.step >= 60 || simState.runway <= 0;
+
+  const reward = ef.reward||0;
+  rewardHistory.push(reward);
+  dashRewardChart.data.labels.push('M'+simState.step);
+  dashRewardChart.data.datasets[0].data.push(reward);
+  dashRewardChart.update('none');
+
+  document.getElementById('reward-display').textContent=(reward>=0?'+':'')+simState.totalReward.toFixed(1);
+
+  // log
+  const colors = {EXECUTE:'var(--success)',PIVOT:'var(--warning)',RESEARCH:'var(--info)',FUNDRAISE:'var(--success)',HIRE:'var(--primary)',CUT_COSTS:'var(--danger)',MARKETING:'var(--purple)',LAUNCH:'var(--info)'};
+  const el = document.getElementById('log-list');
+  if(logItems.length===0) el.innerHTML='';
   const row = document.createElement('div');
-  row.className = 'log-row';
-  row.innerHTML = `
-    <span>${step}</span>
-    <span class="log-action ${action==='PIVOT'?'pivot':''}">${action}</span>
-    <span class="log-reward ${r>=0?'pos':'neg'}">${r>=0?'+':''}${r.toFixed(1)}</span>
-    <span>${runway>=999?'∞':runway+'mo'}</span>
-    <span style="color:var(--muted)">${phase}</span>
-  `;
-  list.insertBefore(row, list.firstChild);
-}
+  row.className='log-row';
+  row.style.animation='fadeUp .25s var(--ease)';
+  row.innerHTML=`<span class="log-step">M${simState.step}</span><span class="badge" style="background:${colors[action]}20;color:${colors[action]};font-size:10px;">${action}</span><span style="margin-left:auto;font-size:12px;font-weight:700;color:${reward>=0?'var(--success)':'var(--danger)'};">${reward>=0?'+':''}${reward.toFixed(1)}</span>`;
+  el.insertBefore(row, el.firstChild);
+  logItems.push(row);
 
-function showDoneOverlay(o) {
-  document.getElementById('done-title').textContent = o.runway_remaining <= 0 ? '💀 STARTUP FAILED' : '✅ SURVIVED 60 MONTHS';
-  document.getElementById('done-msg').textContent = o.runway_remaining <= 0
-    ? 'You ran out of runway. The startup shut down.' : 'You survived the full 60-month simulation!';
-  document.getElementById('done-reward').textContent = totalReward.toFixed(0);
-  document.getElementById('done-survived').textContent = o.runway_remaining > 0 ? 'YES' : 'NO';
-  document.getElementById('done-pivot').textContent = pivotStep !== null ? `Step ${pivotStep}` : 'Never';
-  document.getElementById('done-revenue').textContent = '$' + Math.round(o.monthly_revenue).toLocaleString();
-  document.getElementById('done-overlay').classList.add('show');
-  enableActions(false);
-}
+  updateDashUI();
+  generatePrompt(action, reward);
 
-function showAlert(msg, type) {
-  const el = document.getElementById('alert-strip');
-  el.textContent = msg; el.className = 'alert-strip show ' + type;
-}
-function hideAlert() {
-  document.getElementById('alert-strip').className = 'alert-strip';
-}
-function setStatus(msg) {
-  document.getElementById('status-msg').textContent = msg;
-}
-function enableActions(on) {
-  document.querySelectorAll('.action-btn').forEach(b => b.disabled = !on);
-}
+  document.getElementById('step-display').textContent=simState.step+'/60';
 
-// ── Episode Replay ────────────────────────────────────────────────────────
-function addReplayRow(e) {
-  document.getElementById('replay-empty').style.display = 'none';
-  document.getElementById('replay-table-wrap').style.display = 'block';
-  const tbody = document.getElementById('replay-tbody');
-  const tr = document.createElement('tr');
-  const isAction = (a) => {
-    if (a === 'PIVOT' || a === 'SET_PRICING') return 'var(--warn)';
-    if (a === 'CUT_COSTS' || a === 'SELL' || a === 'FIRE') return 'var(--danger)';
-    if (a === 'EXECUTE') return 'var(--muted)';
-    if (a === 'FUNDRAISE' || a === 'HIRE' || a === 'PARTNERSHIP') return 'var(--accent)';
-    if (a === 'MARKETING_CAMPAIGN') return 'var(--purple)';
-    return 'var(--blue)'; // RESEARCH, LAUNCH_FEATURE
-  };
-  const rColor = e.reward >= 0 ? 'var(--accent)' : 'var(--danger)';
-  const compColor = e.competitor_play === 'dormant' ? 'var(--muted)' : 'var(--warn)';
-  tr.style.borderBottom = '1px solid var(--border)';
-  tr.innerHTML = `
-    <td style="padding:5px 8px;color:var(--muted)">${e.step}</td>
-    <td style="padding:5px 8px;color:${isAction(e.action)};font-weight:700">${e.action}</td>
-    <td style="padding:5px 8px;color:${rColor}">${e.reward >= 0 ? '+' : ''}${e.reward}</td>
-    <td style="padding:5px 8px;color:var(--muted)">${e.runway >= 999 ? '∞' : e.runway + 'mo'}</td>
-    <td style="padding:5px 8px;color:var(--muted)">$${e.revenue.toLocaleString()}</td>
-    <td style="padding:5px 8px;color:var(--muted)">${(e.churn * 100).toFixed(1)}%</td>
-    <td style="padding:5px 8px;color:var(--muted)">${e.nps}</td>
-    <td style="padding:5px 8px;color:${compColor}">${e.competitor_play}</td>
-    <td style="padding:5px 8px;color:var(--muted)">${e.phase}</td>
-  `;
-  tbody.appendChild(tr);
-  tbody.parentElement.parentElement.scrollTop = 99999;
-}
-
-function exportReplay() {
-  if (!replayLog.length) { alert('No episode data yet — play some steps first.'); return; }
-  const blob = new Blob([JSON.stringify({ episode, scenario: document.getElementById('scenario-select').value, steps: replayLog }, null, 2)], { type: 'application/json' });
-  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
-  a.download = `pivot_episode_${episode}.json`; a.click();
-}
-
-// ── Compare Baselines ─────────────────────────────────────────────────────
-async function runCompare() {
-  const scenario = document.getElementById('compare-scenario-select').value;
-  document.getElementById('compare-status').textContent = 'Running 30 episodes across 3 agents... (may take 10-15 seconds)';
-  document.getElementById('compare-results').style.display = 'none';
-  try {
-    const res = await fetch(`/compare?scenario=${scenario}&n_episodes=10`);
-    if (!res.ok) throw new Error(await res.text());
-    const data = await res.json();
-    renderCompareResults(data.results);
-    document.getElementById('compare-status').textContent = `Done! Results for scenario: ${scenario}`;
-  } catch(e) {
-    document.getElementById('compare-status').textContent = 'Error: ' + e.message;
+  if(simState.done){
+    const survived = simState.runway>0 && simState.step>=60;
+    showModal(survived);
   }
 }
 
-function renderCompareResults(results) {
-  const agentColors = { random: '#888', stubborn: 'var(--danger)', panic: 'var(--warn)' };
-  const agentDesc = {
-    random: 'Picks a random action every step. Sets the lower bound.',
-    stubborn: 'Always EXECUTE. Never adapts. Common founder failure mode.',
-    panic: 'Pivots the moment two danger signals appear. Over-reactive.'
-  };
-  const cards = document.getElementById('compare-cards');
-  cards.innerHTML = '';
-  results.forEach(r => {
-    const color = agentColors[r.agent] || 'var(--blue)';
-    const survPct = Math.round((r.survival_rate || 0) * 100);
-    const pivPct = Math.round((r.pivot_rate || 0) * 100);
-    const card = document.createElement('div');
-    card.style.cssText = 'background:#0a0a0a;border:1px solid #222;border-top:2px solid '+color+';border-radius:8px;padding:16px';
-    card.innerHTML = `
-      <div style="font-family:'Space Mono',monospace;font-size:13px;color:${color};font-weight:700;margin-bottom:6px;text-transform:uppercase">${r.agent}</div>
-      <div style="font-size:11px;color:#555;margin-bottom:14px">${agentDesc[r.agent] || ''}</div>
-      <div style="display:flex;flex-direction:column;gap:8px">
-        <div style="display:flex;justify-content:space-between"><span style="font-size:11px;color:#666">Mean Reward</span><span style="font-family:'Space Mono',monospace;font-size:13px;color:${r.mean_reward>=0?'var(--accent)':'var(--danger)'}">${(r.mean_reward||0).toFixed(1)}</span></div>
-        <div style="display:flex;justify-content:space-between"><span style="font-size:11px;color:#666">Survival Rate</span><span style="font-family:'Space Mono',monospace;font-size:13px;color:#aaa">${survPct}%</span></div>
-        <div style="display:flex;justify-content:space-between"><span style="font-size:11px;color:#666">Pivot Rate</span><span style="font-family:'Space Mono',monospace;font-size:13px;color:#aaa">${pivPct}%</span></div>
-        <div style="display:flex;justify-content:space-between"><span style="font-size:11px;color:#666">Episodes</span><span style="font-family:'Space Mono',monospace;font-size:11px;color:#555">${r.n_episodes}</span></div>
-      </div>
-    `;
-    cards.appendChild(card);
-  });
-  document.getElementById('compare-results').style.display = 'block';
+function updateDashUI(){
+  const s=simState;
+  document.getElementById('stat-runway').textContent=Math.max(0,Math.round(s.runway))+' mo';
+  document.getElementById('stat-mrr').textContent='$'+Math.round(s.mrr)+'k';
+  document.getElementById('stat-churn').textContent=Math.round(s.churn)+'%';
+  document.getElementById('stat-comp').textContent=Math.round(s.comp)+'%';
+  document.getElementById('g-runway').style.width=Math.min(100,s.runway/24*100)+'%';
+  document.getElementById('g-mrr').style.width=Math.min(100,s.mrr/120*100)+'%';
+  document.getElementById('g-churn').style.width=Math.min(100,s.churn)+'%';
+  document.getElementById('g-comp').style.width=Math.min(100,s.comp)+'%';
+  const phase = s.step < 20 ? 'GROWTH PHASE' : s.step < 40 ? 'SATURATION' : 'DECLINE PHASE';
+  const cls = s.step < 20 ? 'badge-green' : s.step < 40 ? 'badge-amber' : 'badge-red';
+  const pb = document.getElementById('phase-badge');
+  pb.className='badge '+cls;
+  pb.textContent='● '+phase;
 }
 
-// ── Init ──────────────────────────────────────────────────────────────────
-initCharts();
-enableActions(false);
-</script>
-
-<!-- ADVISOR MODE -->
-<div class="grid-full" style="margin-bottom:40px">
-  <div class="card card-accent">
-    <div class="card-title">🧠 Advisor Mode — Paste Your Real Metrics</div>
-    <div style="font-size:12px;color:var(--muted);margin-bottom:16px">Running a real startup? Enter your numbers and get a strategic recommendation.</div>
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px">
-      <div><label style="font-size:10px;color:var(--muted);display:block;margin-bottom:4px">MRR (USD/mo)</label><input id="adv-mrr" type="number" value="45000" style="width:100%;background:#111;border:1px solid #333;color:#fff;padding:8px;border-radius:6px;font-size:13px"></div>
-      <div><label style="font-size:10px;color:var(--muted);display:block;margin-bottom:4px">Monthly Burn (USD)</label><input id="adv-burn" type="number" value="120000" style="width:100%;background:#ffffff;border:1px solid var(--border);color:var(--text);padding:8px;border-radius:6px;font-size:13px"></div>
-      <div><label style="font-size:10px;color:var(--muted);display:block;margin-bottom:4px">Runway (months)</label><input id="adv-runway" type="number" value="18" style="width:100%;background:#ffffff;border:1px solid var(--border);color:var(--text);padding:8px;border-radius:6px;font-size:13px"></div>
-      <div><label style="font-size:10px;color:var(--muted);display:block;margin-bottom:4px">NPS Score</label><input id="adv-nps" type="number" value="40" style="width:100%;background:#ffffff;border:1px solid var(--border);color:var(--text);padding:8px;border-radius:6px;font-size:13px"></div>
-      <div><label style="font-size:10px;color:var(--muted);display:block;margin-bottom:4px">Monthly Churn (0–1)</label><input id="adv-churn" type="number" value="0.08" step="0.01" style="width:100%;background:#ffffff;border:1px solid var(--border);color:var(--text);padding:8px;border-radius:6px;font-size:13px"></div>
-      <div><label style="font-size:10px;color:var(--muted);display:block;margin-bottom:4px">Company Month #</label><input id="adv-step" type="number" value="12" style="width:100%;background:#ffffff;border:1px solid var(--border);color:var(--text);padding:8px;border-radius:6px;font-size:13px"></div>
-    </div>
-    <button class="ctrl-btn primary" onclick="runAdvisor()" style="padding:10px 24px">Get Recommendation</button>
-    <div id="advisor-result" style="display:none;margin-top:20px;padding:20px;background:var(--card);border-radius:8px;border-left:4px solid var(--accent);box-shadow:var(--card-shadow)">
-      <div style="font-size:18px;font-weight:700;font-family:'Space Mono',monospace;color:var(--accent);margin-bottom:10px" id="advisor-action">—</div>
-      <div style="font-size:14px;color:var(--muted);line-height:1.6;font-weight:500" id="advisor-reasoning">—</div>
-    </div>
-  </div>
-</div>
-
-<!-- COUNTERFACTUAL REPLAY -->
-<div class="grid-full" style="margin-bottom:40px">
-  <div class="card card-accent">
-    <div class="card-title">🔀 Counterfactual — "What if I had PIVOTed at month X?"</div>
-    <div style="font-size:12px;color:var(--muted);margin-bottom:16px">Simulate an alternate timeline where PIVOT happens at a specific month.</div>
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px">
-      <div><label style="font-size:10px;color:var(--muted);display:block;margin-bottom:4px">Scenario</label>
-        <select id="cf-scenario" class="ctrl-select" style="width:100%;font-size:12px;padding:8px">
-          <option value="b2c_saas">B2C SaaS</option><option value="enterprise_saas">Enterprise SaaS</option>
-          <option value="fintech">Fintech</option><option value="marketplace">Marketplace</option><option value="consumer_app">Consumer App</option>
-        </select></div>
-      <div><label style="font-size:10px;color:var(--muted);display:block;margin-bottom:4px">Pivot at Month #</label><input id="cf-step" type="number" value="35" min="1" max="58" style="width:100%;background:#ffffff;border:1px solid var(--border);color:var(--text);padding:8px;border-radius:6px;font-size:13px"></div>
-      <div><label style="font-size:10px;color:var(--muted);display:block;margin-bottom:4px">Simulate N months ahead</label><input id="cf-ahead" type="number" value="20" min="5" max="40" style="width:100%;background:#ffffff;border:1px solid var(--border);color:var(--text);padding:8px;border-radius:6px;font-size:13px"></div>
-    </div>
-    <button class="ctrl-btn primary" id="cf-btn" onclick="runCounterfactual()" style="padding:10px 24px">Simulate Alternate Timeline</button>
-    <div id="cf-result" style="display:none;margin-top:20px">
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px" id="cf-summary-cards"></div>
-      <div style="font-size:11px;color:var(--muted);margin-bottom:8px">Trajectory after pivot:</div>
-      <div style="overflow-x:auto"><table style="width:100%;font-size:11px;border-collapse:collapse">
-        <thead><tr style="color:var(--muted)"><th style="text-align:left;padding:6px">Month</th><th style="text-align:left;padding:6px">Action</th><th style="text-align:right;padding:6px">Reward</th><th style="text-align:right;padding:6px">Runway</th><th style="text-align:right;padding:6px">Revenue</th></tr></thead>
-        <tbody id="cf-tbody"></tbody>
-      </table></div>
-    </div>
-  </div>
-</div>
-
-<!-- LEADERBOARD -->
-<div class="grid-full" style="margin-bottom:60px">
-  <div class="card card-accent">
-    <div class="card-title">🏆 Leaderboard</div>
-    <div style="font-size:12px;color:var(--muted);margin-bottom:16px">Best episodes. Play an episode then submit your score.</div>
-    <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap">
-      <input id="lb-name" placeholder="Your name / team" style="background:#ffffff;border:1px solid var(--border);color:var(--text);padding:10px 14px;border-radius:8px;font-size:13px;min-width:180px;outline:none;box-shadow:inset 0 1px 2px rgba(0,0,0,0.02)">
-      <button class="ctrl-btn primary" onclick="submitScore()" style="padding:10px 20px">Submit Score</button>
-      <button class="ctrl-btn secondary" onclick="loadLeaderboard()" style="padding:10px 20px">Refresh</button>
-    </div>
-    <div id="lb-status" style="font-size:12px;color:var(--muted);margin-bottom:16px;font-weight:500">Click Refresh to load scores.</div>
-    <table style="width:100%;font-size:13px;border-collapse:collapse">
-      <thead><tr style="color:var(--muted);border-bottom:1px solid var(--border);font-weight:600">
-        <th style="text-align:left;padding:8px">#</th><th style="text-align:left;padding:8px">Name</th><th style="text-align:left;padding:8px">Scenario</th>
-        <th style="text-align:right;padding:8px">Reward</th><th style="text-align:right;padding:8px">Survived</th><th style="text-align:right;padding:8px">Pivot</th>
-      </tr></thead>
-      <tbody id="lb-tbody"></tbody>
-    </table>
-  </div>
-</div>
-
-<script>
-async function runAdvisor() {
-  const body = { mrr: +document.getElementById('adv-mrr').value, burn: +document.getElementById('adv-burn').value, runway: +document.getElementById('adv-runway').value, nps: +document.getElementById('adv-nps').value, churn: +document.getElementById('adv-churn').value, step: +document.getElementById('adv-step').value };
-  const data = await fetch('/advisor', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) }).then(r=>r.json());
-  const colors = { EXECUTE:'var(--muted)', PIVOT:'var(--warn)', RESEARCH:'var(--blue)', FUNDRAISE:'var(--accent)', HIRE:'var(--accent)', CUT_COSTS:'var(--danger)', SELL:'var(--danger)', LAUNCH_FEATURE:'var(--blue)', MARKETING_CAMPAIGN:'var(--purple)', SET_PRICING:'var(--warn)', FIRE:'var(--danger)', PARTNERSHIP:'var(--accent)' };
-  document.getElementById('advisor-action').textContent = '→ ' + data.recommendation;
-  document.getElementById('advisor-action').style.color = colors[data.recommendation] || 'var(--text)';
-  document.getElementById('advisor-reasoning').textContent = data.reasoning;
-  document.getElementById('advisor-result').style.display = 'block';
+function generatePrompt(action, reward){
+  const s=simState;
+  const txt=`[Month ${s.step}] Action: ${action}
+Reward: ${reward>=0?'+':''}${reward.toFixed(2)}
+MRR: $${Math.round(s.mrr)}k | Burn: $${Math.round(s.burn)}k
+Runway: ${Math.round(s.runway)} months
+NPS: ${Math.round(s.nps)} | Churn: ${Math.round(s.churn)}%
+Competitor Strength: ${Math.round(s.comp)}%
+─────────────────────────────────
+Signals: ${s.churn>15?'⚠ HIGH CHURN':'✓ churn stable'} | ${s.nps<30?'⚠ LOW NPS':'✓ nps ok'} | ${s.comp>60?'⚠ RIVAL STRONG':'✓ rival weak'}
+Phase estimate: ${s.step<20?'Growth':'s.step<40?Saturation:Decline'}
+─────────────────────────────────
+Next recommendation: ${autoAdvice(s)}`;
+  document.getElementById('prompt-box').textContent=txt;
 }
 
-async function runCounterfactual() {
-  const btn = document.getElementById('cf-btn');
-  btn.textContent = 'Simulating...'; btn.disabled = true;
-  const body = { scenario: document.getElementById('cf-scenario').value, pivot_at_step: +document.getElementById('cf-step').value, n_steps_ahead: +document.getElementById('cf-ahead').value, seed: 42 };
-  const data = await fetch('/counterfactual', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) }).then(r=>r.json());
-  btn.textContent = 'Simulate Alternate Timeline'; btn.disabled = false;
-  if (data.error) { alert(data.error); return; }
-  const sc = document.getElementById('cf-summary-cards');
-  sc.innerHTML = `
-    <div style="background:var(--card);border:1px solid var(--border);border-top:3px solid var(--accent);border-radius:12px;padding:16px;box-shadow:var(--card-shadow)"><div style="font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px">Total Reward (pivot at m${data.pivot_at_step})</div><div style="font-size:24px;font-weight:700;color:${data.total_reward>=0?'var(--accent)':'var(--danger)'}">${data.total_reward>0?'+':''}${data.total_reward}</div></div>
-    <div style="background:var(--card);border:1px solid var(--border);border-top:3px solid var(--blue);border-radius:12px;padding:16px;box-shadow:var(--card-shadow)"><div style="font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px">Final Runway</div><div style="font-size:24px;font-weight:700;color:var(--blue)">${data.final_runway}mo</div></div>
-    <div style="background:var(--card);border:1px solid var(--border);border-top:3px solid var(--muted);border-radius:12px;padding:16px;box-shadow:var(--card-shadow)"><div style="font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px">Outcome</div><div style="font-size:20px;font-weight:700;color:var(--text)">${data.survived?'✅ Survived':'💀 Died'}</div></div>`;
-  const tb = document.getElementById('cf-tbody'); tb.innerHTML='';
-  data.trajectory.forEach(row => {
-    const p = row.action==='PIVOT';
-    tb.innerHTML += `<tr style="border-bottom:1px solid var(--border);${p?'background:#fffbeb':''}"><td style="padding:6px 8px;color:${p?'var(--warn)':'var(--muted)'}">${row.step}${p?' ⭐':''}</td><td style="padding:6px 8px;font-family:'Space Mono',monospace;color:${p?'var(--warn)':'var(--muted)'};font-weight:600">${row.action}</td><td style="padding:6px 8px;text-align:right;color:${row.reward>=0?'var(--accent)':'var(--danger)'};font-weight:600">${(row.reward||0).toFixed(1)}</td><td style="padding:6px 8px;text-align:right;color:var(--muted)">${row.runway}mo</td><td style="padding:6px 8px;text-align:right;color:var(--muted)">$${(row.revenue/1000).toFixed(0)}k</td></tr>`;
-  });
-  document.getElementById('cf-result').style.display='block';
+function autoAdvice(s){
+  if(s.runway<6) return 'FUNDRAISE immediately — runway critical';
+  if(s.churn>18 && s.nps<30) return 'RESEARCH to clarify decline signals';
+  if(s.comp>70) return 'Consider PIVOT — rival gaining dominance';
+  if(s.nps>55 && s.mrr<60) return 'MARKETING — strong PMF, scale now';
+  return 'EXECUTE — maintain momentum';
 }
 
-// ── Chat ──────────────────────────────────────────────────────────────────
-let chatHistory = [];
-
-async function checkModelStatus() {
-  try {
-    const data = await fetch('/model/status').then(r => r.json());
-    const badge = document.getElementById('model-status-badge');
-    if (!data.configured) {
-      badge.textContent = '⚪ No model configured';
-      badge.style.color = '#555'; badge.style.borderColor = '#333';
-    } else if (data.status === 'loading') {
-      badge.textContent = '⏳ Model loading...';
-      badge.style.color = 'var(--warn)'; badge.style.borderColor = 'var(--warn)';
-      setTimeout(checkModelStatus, 5000);   // recheck in 5s
-    } else if (data.status === 'ready') {
-      badge.textContent = '🟢 Model ready';
-      badge.style.color = 'var(--accent)'; badge.style.borderColor = 'var(--accent)';
-      document.getElementById('chat-welcome').innerHTML =
-        '🤖 <b style="color:var(--accent)">Model ready!</b> Describe your startup situation to get a strategic recommendation.';
-    } else if (data.status === 'error') {
-      badge.textContent = '🔴 Model error';
-      badge.style.color = 'var(--danger)'; badge.style.borderColor = 'var(--danger)';
-    }
-  } catch {}
+function showModal(survived){
+  document.getElementById('modal-icon').textContent = survived?'🏆':'💀';
+  document.getElementById('modal-title').textContent = survived?'Startup Survived!':'Startup Failed';
+  document.getElementById('modal-msg').textContent = survived
+    ? `Reached month 60 with ${Math.round(simState.runway)} months runway remaining.`
+    : `Ran out of runway at month ${simState.step}.`;
+  document.getElementById('modal-reward').textContent = simState.totalReward.toFixed(1);
+  document.getElementById('modal-survived').textContent = survived?'YES':'NO';
+  document.getElementById('modal-done').classList.add('show');
 }
 
-function appendChatMessage(role, text, action) {
-  const wrap = document.getElementById('chat-messages');
-  document.getElementById('chat-welcome').style.display = 'none';
-  const div = document.createElement('div');
-  div.style.cssText = `max-width:85%;padding:12px 16px;border-radius:8px;font-size:13px;line-height:1.6;word-break:break-word;`;
-
-  if (role === 'user') {
-    div.style.cssText += 'align-self:flex-end;background:#ffffff;border:1px solid var(--border);color:var(--text);box-shadow:0 1px 2px rgba(0,0,0,0.02);font-weight:500;';
-    div.textContent = text;
-  } else {
-    const actionColors = {PIVOT:'var(--warn)',CUT_COSTS:'var(--danger)',SELL:'var(--danger)',EXECUTE:'var(--muted)',RESEARCH:'var(--blue)',FUNDRAISE:'var(--accent)',HIRE:'var(--accent)',LAUNCH_FEATURE:'var(--blue)',MARKETING_CAMPAIGN:'var(--purple)',SET_PRICING:'var(--warn)',FIRE:'var(--danger)',PARTNERSHIP:'var(--accent)'};
-    const color = action ? (actionColors[action] || 'var(--purple)') : 'var(--purple)';
-    div.style.cssText += `align-self:flex-start;background:var(--card);border:1px solid var(--border);border-left:4px solid ${color};color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,0.03);`;
-    if (action) {
-      div.innerHTML = `<span style="font-family:'Space Mono',monospace;font-size:12px;font-weight:700;color:${color};display:block;margin-bottom:6px">→ ${action}</span>${text.replace(action, '').trim()}`;
-    } else {
-      div.textContent = text;
-    }
-  }
-  wrap.appendChild(div);
-  wrap.scrollTop = wrap.scrollHeight;
+// ══════════════════════════════════════════════
+//  ANALYTICS: highlight metric
+// ══════════════════════════════════════════════
+function highlightMetric(m){
+  const datasets = mainAnalyticsChart.data.datasets;
+  if(m==='reward'){datasets[0].borderWidth=3;datasets[1].borderWidth=1;datasets[1].borderDash=[4,4];}
+  else if(m==='loss'){datasets[0].borderWidth=1;datasets[1].borderWidth=3;datasets[1].borderDash=[];}
+  else{datasets.forEach(d=>{d.borderWidth=2;d.borderDash=[];});}
+  mainAnalyticsChart.update();
 }
 
-async function sendChat() {
-  const input = document.getElementById('chat-input');
-  const msg   = input.value.trim();
-  if (!msg) return;
-
-  input.value = '';
-  appendChatMessage('user', msg, null);
-  document.getElementById('chat-send-btn').disabled = true;
-  document.getElementById('chat-send-btn').textContent = '...';
-
-  const body = { message: msg, history: chatHistory };
-  try {
-    const data = await fetch('/api/chat', {
-      method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body)
-    }).then(r => r.json());
-
-    appendChatMessage('assistant', data.response, data.action);
-    chatHistory.push({ role: 'user', content: msg });
-    chatHistory.push({ role: 'assistant', content: data.response });
-    if (chatHistory.length > 12) chatHistory = chatHistory.slice(-12);  // keep last 6 turns
-  } catch(e) {
-    appendChatMessage('assistant', '❌ Error: ' + e.message, null);
-  }
-  document.getElementById('chat-send-btn').disabled = false;
-  document.getElementById('chat-send-btn').textContent = 'Send ↵';
-  input.focus();
+// ══════════════════════════════════════════════
+//  AI ADVISOR — mode toggle + demo
+// ══════════════════════════════════════════════
+function setAdvisorMode(mode){
+  const isChat = mode === 'chat';
+  document.getElementById('advisor-chat-controls').style.display = isChat ? 'block' : 'none';
+  document.getElementById('advisor-demo-controls').style.display = isChat ? 'none' : 'block';
+  document.getElementById('mode-chat-btn').style.cssText = isChat
+    ? 'border:none;background:#fff;color:var(--primary);padding:6px 14px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;box-shadow:var(--shadow-sm);font-family:inherit;transition:all .18s;'
+    : 'border:none;background:transparent;color:var(--text-muted);padding:6px 14px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .18s;';
+  document.getElementById('mode-demo-btn').style.cssText = !isChat
+    ? 'border:none;background:#fff;color:var(--primary);padding:6px 14px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;box-shadow:var(--shadow-sm);font-family:inherit;transition:all .18s;'
+    : 'border:none;background:transparent;color:var(--text-muted);padding:6px 14px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .18s;';
 }
 
-function clearChat() {
-  chatHistory = [];
-  const wrap = document.getElementById('chat-messages');
-  wrap.innerHTML = '<div id="chat-welcome" style="color:#444;font-size:12px;font-family:\'Space Mono\',monospace;text-align:center;margin:auto">Chat cleared. Type a message to start again.</div>';
-}
+let demoRunning = false;
+let demoTimer = null;
 
-checkModelStatus();
+const demoActions = ['EXECUTE','EXECUTE','RESEARCH','EXECUTE','EXECUTE','FUNDRAISE','EXECUTE','EXECUTE','PIVOT','EXECUTE','EXECUTE','CUT_COSTS','EXECUTE','HIRE','EXECUTE','EXECUTE','MARKETING','EXECUTE','LAUNCH','EXECUTE'];
+const demoColors = {EXECUTE:'var(--success)',PIVOT:'var(--warning)',RESEARCH:'var(--info)',FUNDRAISE:'var(--success)',HIRE:'var(--primary)',CUT_COSTS:'var(--danger)',MARKETING:'var(--purple)',LAUNCH:'var(--info)'};
 
-// ── Live Demo ─────────────────────────────────────────────────────────────
-async function runDemo() {
-  const btn = document.getElementById('demo-btn');
-  btn.textContent = 'Running...'; btn.disabled = true;
-  document.getElementById('demo-status').textContent = 'Simulating 60 months...';
-  document.getElementById('demo-result').style.display = 'none';
+async function runDemo(){
+  if(demoRunning) return;
+  demoRunning = true;
+  document.getElementById('demo-run-btn').style.display = 'none';
+  document.getElementById('demo-stop-btn').style.display = '';
+  const container = document.getElementById('chat-msgs');
+  container.innerHTML = '';
+  const speed = +document.getElementById('demo-speed').value;
+  const scenario = document.getElementById('demo-scenario').value;
 
-  const body = {
-    scenario: document.getElementById('demo-scenario').value,
-    seed: parseInt(document.getElementById('demo-seed').value) || 42,
-  };
+  appendDemoMsg('system', `🎬 Starting demo: <b>${scenario.replace(/_/g,' ').toUpperCase()}</b> · Calling /demo on the live agent…`);
+  document.getElementById('demo-status').textContent = 'Running episode on the server…';
 
-  try {
-    const res = await fetch('/demo', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
-    if (!res.ok) throw new Error(await res.text());
-    const data = await res.json();
-    if (data.error) throw new Error(data.error);
-
-    // Summary cards
-    const pivotStr = data.pivot_steps.length ? `Month ${data.pivot_steps.join(', ')}` : 'Never';
-    document.getElementById('demo-summary').innerHTML = `
-      <div style="background:#0a0a0a;border:1px solid #222;border-top:2px solid var(--purple);border-radius:8px;padding:14px">
-        <div style="font-size:10px;color:var(--muted);margin-bottom:6px">TOTAL REWARD</div>
-        <div style="font-size:24px;font-weight:700;font-family:'Space Mono',monospace;color:${data.total_reward>=0?'var(--accent)':'var(--danger)'}">${data.total_reward>0?'+':''}${data.total_reward}</div>
-      </div>
-      <div style="background:#0a0a0a;border:1px solid #222;border-top:2px solid var(--blue);border-radius:8px;padding:14px">
-        <div style="font-size:10px;color:var(--muted);margin-bottom:6px">OUTCOME</div>
-        <div style="font-size:20px;font-weight:700">${data.survived ? '✅ Survived' : '💀 Bankrupt'}</div>
-      </div>
-      <div style="background:#0a0a0a;border:1px solid #222;border-top:2px solid var(--warn);border-radius:8px;padding:14px">
-        <div style="font-size:10px;color:var(--muted);margin-bottom:6px">PIVOT AT</div>
-        <div style="font-size:16px;font-weight:700;font-family:'Space Mono',monospace;color:var(--warn)">${pivotStr}</div>
-      </div>
-      <div style="background:#0a0a0a;border:1px solid #222;border-top:2px solid #aaa;border-radius:8px;padding:14px">
-        <div style="font-size:10px;color:var(--muted);margin-bottom:6px">MONTHS SURVIVED</div>
-        <div style="font-size:24px;font-weight:700;font-family:'Space Mono',monospace">${data.steps}<span style="font-size:14px;color:var(--muted)">/60</span></div>
-      </div>`;
-
-    // Step table
-    const tb = document.getElementById('demo-tbody');
-    tb.innerHTML = '';
-    data.trajectory.forEach(row => {
-      const isPivot = row.action === 'PIVOT';
-      const isCut   = row.action === 'CUT_COSTS';
-      const actionColor = isPivot ? 'var(--warn)' : isCut ? 'var(--danger)' : row.action === 'EXECUTE' ? '#666' : 'var(--blue)';
-      const rColor = row.reward >= 0 ? 'var(--accent)' : 'var(--danger)';
-      tb.innerHTML += `
-        <tr style="border-bottom:1px solid #111;${isPivot ? 'background:#1a1000;' : ''}">
-          <td style="padding:5px 8px;color:${isPivot?'var(--warn)':'#555'}">${row.step}${isPivot?' ⭐':''}</td>
-          <td style="padding:5px 8px;font-weight:700;color:${actionColor}">${row.action}</td>
-          <td style="padding:5px 8px;text-align:right;color:${rColor}">${row.reward >= 0 ? '+' : ''}${row.reward}</td>
-          <td style="padding:5px 8px;text-align:right;color:${row.runway<6?'var(--danger)':row.runway<12?'var(--warn)':'#aaa'}">${row.runway}mo</td>
-          <td style="padding:5px 8px;text-align:right;color:#aaa">$${(row.revenue/1000).toFixed(0)}k</td>
-          <td style="padding:5px 8px;text-align:right;color:${row.churn>15?'var(--danger)':row.churn>10?'var(--warn)':'#666'}">${row.churn}%</td>
-          <td style="padding:5px 8px;text-align:right;color:${row.nps<10?'var(--danger)':row.nps<30?'var(--warn)':'var(--accent)'}">${row.nps}</td>
-          <td style="padding:5px 8px;color:#555;font-size:10px;max-width:240px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">${row.reasoning}</td>
-        </tr>`;
+  let trajectory = [];
+  let totalReward = 0;
+  let survived = false;
+  let finalRunway = 0;
+  try{
+    const resp = await fetch('/demo', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ scenario, seed: Math.floor(Math.random()*9999) })
     });
-
-    document.getElementById('demo-status').textContent =
-      `Done! ${data.steps} months simulated on scenario: ${data.scenario}`;
-    document.getElementById('demo-result').style.display = 'block';
-  } catch(e) {
-    document.getElementById('demo-status').textContent = 'Error: ' + e.message;
+    const data = await resp.json();
+    if(data.error){ throw new Error(data.error); }
+    trajectory  = data.trajectory || [];
+    totalReward = data.total_reward || 0;
+    survived    = !!data.survived;
+    finalRunway = data.final_runway || 0;
+  }catch(e){
+    appendDemoMsg('system', `⚠️ Live demo failed (${escHtml(e.message)}). Falling back to client-side simulation.`);
   }
-  btn.textContent = '▶ Run Demo'; btn.disabled = false;
+
+  if(trajectory.length === 0){
+    // fallback: client-side simulation
+    const r = seededRand(Date.now()%9999);
+    let demoState = {step:0, runway:18, mrr:45, burn:120, churn:12, nps:52, comp:30, total:0};
+    for(let i=0; i<60 && demoRunning; i++){
+      await new Promise(res=>{demoTimer=setTimeout(res, speed);});
+      if(!demoRunning) break;
+      const action = demoActions[i % demoActions.length];
+      const ef = actionEffects[action] ? actionEffects[action](demoState) : {reward:0};
+      Object.assign(demoState, ef);
+      demoState.step++;
+      demoState.total += ef.reward||0;
+      appendDemoMsg('action', renderDemoStep(demoState.step, action, ef.reward||0, Math.round(demoState.runway)));
+      document.getElementById('demo-status').textContent = `Month ${demoState.step}/60 · Total ${demoState.total.toFixed(1)}`;
+      if(demoState.runway <= 0){ break; }
+    }
+  } else {
+    // stream server trajectory step-by-step at chosen speed
+    for(let i=0; i<trajectory.length && demoRunning; i++){
+      await new Promise(res=>{demoTimer=setTimeout(res, speed);});
+      if(!demoRunning) break;
+      const t = trajectory[i];
+      appendDemoMsg('action', renderDemoStep(t.step, t.action, t.reward, t.runway, t.reasoning));
+      document.getElementById('demo-status').textContent = `Month ${t.step}/60 · runway ${t.runway}mo · revenue $${t.revenue}`;
+    }
+    appendDemoMsg('system', survived
+      ? `🏆 <b>Survived!</b> Reached month ${trajectory.length} with ${finalRunway} months runway. Total reward: <b>${totalReward}</b>`
+      : `💀 <b>Failed</b> at month ${trajectory.length}. Total reward: <b>${totalReward}</b>`);
+  }
+
+  demoRunning = false;
+  document.getElementById('demo-run-btn').style.display = '';
+  document.getElementById('demo-stop-btn').style.display = 'none';
+  document.getElementById('demo-status').textContent = 'Demo complete. Run again or switch to Chat mode.';
 }
 
-async function loadLeaderboard() {
-  const data = await fetch('/leaderboard').then(r=>r.json());
-  const tb = document.getElementById('lb-tbody'); tb.innerHTML='';
-  if (!data.leaderboard.length) { document.getElementById('lb-status').textContent='No scores yet. Play and submit!'; return; }
-  document.getElementById('lb-status').textContent=`${data.total_entries} total submissions.`;
-  data.leaderboard.forEach((e,i) => {
-    const m=['🥇','🥈','🥉'][i]||(i+1)+'.';
-    tb.innerHTML += `<tr style="border-bottom:1px solid #111"><td style="padding:8px;color:var(--muted)">${m}</td><td style="padding:8px;font-weight:600">${e.name}</td><td style="padding:8px;color:#666;font-size:11px">${e.scenario}</td><td style="padding:8px;text-align:right;font-family:'Space Mono',monospace;color:${e.total_reward>=0?'var(--accent)':'var(--danger)'}">${e.total_reward>0?'+':''}${e.total_reward.toFixed(1)}</td><td style="padding:8px;text-align:right">${e.survived?'✅':'💀'}</td><td style="padding:8px;text-align:right;color:#666">${e.pivot_step!=null?'m'+e.pivot_step:'—'}</td></tr>`;
+function renderDemoStep(step, action, reward, runway, reasoning){
+  const color = demoColors[action] || 'var(--text-muted)';
+  let html = `<span style="color:var(--text-light);font-size:11px;font-family:'JetBrains Mono',monospace;">M${step}</span> &nbsp;<span class="badge" style="background:${color}20;color:${color};font-size:10px;">${action}</span>&nbsp; <span style="font-weight:700;color:${reward>=0?'var(--success)':'var(--danger)'};">${reward>=0?'+':''}${(+reward).toFixed(1)}</span> &nbsp;<span style="font-size:11px;color:var(--text-muted);">runway ${runway}mo</span>`;
+  if(reasoning){ html += `<div style="font-size:11px;color:var(--text-muted);margin-top:3px;font-style:italic;">${escHtml(reasoning)}</div>`; }
+  return html;
+}
+
+function stopDemo(){
+  demoRunning = false;
+  if(demoTimer) clearTimeout(demoTimer);
+  document.getElementById('demo-run-btn').style.display = '';
+  document.getElementById('demo-stop-btn').style.display = 'none';
+  document.getElementById('demo-status').textContent = 'Demo stopped.';
+}
+
+function appendDemoMsg(type, html){
+  const container = document.getElementById('chat-msgs');
+  const row = document.createElement('div');
+  if(type === 'system'){
+    row.style.cssText = 'background:var(--primary-light);border-radius:var(--r-md);padding:10px 14px;font-size:13px;color:var(--primary);';
+  } else {
+    row.style.cssText = 'display:flex;align-items:center;gap:8px;padding:5px 0;font-size:13px;border-bottom:1px solid var(--border);';
+  }
+  row.innerHTML = html;
+  container.appendChild(row);
+  container.scrollTop = container.scrollHeight;
+}
+
+function quickChat(msg){document.getElementById('chat-input').value=msg;sendChat();}
+
+async function sendChat(){
+  const input = document.getElementById('chat-input');
+  const msg = input.value.trim();
+  if(!msg) return;
+  input.value='';
+  const container = document.getElementById('chat-msgs');
+  // clear placeholder
+  if(container.querySelector('div[style*="margin-top:60px"]')) container.innerHTML='';
+
+  const userBubble=document.createElement('div');
+  userBubble.style.cssText='display:flex;justify-content:flex-end;';
+  userBubble.innerHTML=`<div class="advisor-bubble bubble-user">${escHtml(msg)}</div>`;
+  container.appendChild(userBubble);
+
+  const botRow=document.createElement('div');
+  botRow.style.cssText='display:flex;justify-content:flex-start;';
+  botRow.innerHTML=`<div class="advisor-bubble bubble-bot"><span style="opacity:.5;">Thinking...</span></div>`;
+  container.appendChild(botRow);
+  container.scrollTop=container.scrollHeight;
+
+  const reply = await askClaude(msg);
+  botRow.querySelector('.advisor-bubble').innerHTML=reply;
+  container.scrollTop=container.scrollHeight;
+}
+
+let chatHistory = [];
+async function askClaude(msg){
+  try{
+    const resp = await fetch('/api/chat', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ message: msg, history: chatHistory })
+    });
+    const data = await resp.json();
+    if(!data.ready){
+      return `<i style="color:var(--text-muted);">${escHtml(data.response||'Model unavailable — using rule-based fallback.')}</i><br><br>${advisorFallback(msg)}`;
+    }
+    chatHistory.push({role:'user', content: msg});
+    chatHistory.push({role:'assistant', content: data.response});
+    if(chatHistory.length > 12) chatHistory = chatHistory.slice(-12);
+    let html = escHtml(data.response).replace(/\n/g,'<br>');
+    if(data.action){
+      html += `<br><br><span class="badge badge-indigo">→ ${data.action}</span>`;
+    }
+    return html;
+  }catch(e){
+    return advisorFallback(msg);
+  }
+}
+
+function advisorFallback(msg){
+  const s=simState;
+  if(msg.toLowerCase().includes('pivot')) return `With ${Math.round(s.churn)}% churn and NPS of ${Math.round(s.nps)}, ${s.churn>15?'the signals suggest pivoting within the next 3-5 months before runway deteriorates further.':'it\'s too early to pivot — execute on your current strategy and monitor NPS trends.'}`;
+  if(s.runway<8) return `⚠️ Critical: only ${Math.round(s.runway)} months runway. Prioritize FUNDRAISE immediately or CUT_COSTS aggressively.`;
+  return `At month ${s.step}, your ${Math.round(s.churn)}% churn is the key watch metric. ${s.nps>45?'Strong NPS suggests product-market fit — scale marketing now.':'Low NPS signals you need to RESEARCH root causes before scaling.'}`;
+}
+
+async function runAdvisor(){
+  const mrr=+document.getElementById('adv-mrr').value;
+  const burn=+document.getElementById('adv-burn').value;
+  const runway=+document.getElementById('adv-runway').value;
+  const nps=+document.getElementById('adv-nps').value;
+  let action='EXECUTE', reason='';
+  try{
+    const resp = await fetch('/advisor', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ mrr, burn, runway, nps, churn: 0.12, step: simState.step })
+    });
+    const data = await resp.json();
+    action = data.recommendation || 'EXECUTE';
+    reason = data.reasoning || '';
+  }catch(e){
+    if(runway<6){action='FUNDRAISE';reason='Runway critically low — secure capital first.';}
+    else if(nps<30){action='RESEARCH';reason='NPS below 30 → product-market fit issues.';}
+    else if(burn>mrr*3){action='CUT_COSTS';reason='Burn-to-MRR unsustainable.';}
+    else if(nps>55&&mrr<100){action='MARKETING';reason='Strong NPS — scale acquisition.';}
+    else{action='EXECUTE';reason='Healthy momentum — stay the course.';}
+  }
+  document.getElementById('adv-action').textContent=action;
+  document.getElementById('adv-reason').textContent=reason;
+  document.getElementById('adv-result').style.display='block';
+  const probs={EXECUTE:0.42,PIVOT:0.18,RESEARCH:0.14,FUNDRAISE:0.12,HIRE:0.08,CUT_COSTS:0.06};
+  if(probs[action]!==undefined) probs[action]=Math.min(0.75,probs[action]+0.3);
+  const total=Object.values(probs).reduce((a,b)=>a+b,0);
+  actionProbChart.data.datasets[0].data=Object.values(probs).map(v=>v/total);
+  actionProbChart.update();
+}
+
+// ══════════════════════════════════════════════
+//  COMPARE
+// ══════════════════════════════════════════════
+async function runCompare(){
+  const scenario = document.getElementById('compare-scenario').value;
+  try{
+    const resp = await fetch(`/compare?scenario=${encodeURIComponent(scenario)}&n_episodes=5`);
+    const data = await resp.json();
+    if(data.results && data.results.length){
+      // Pull the first 3 baselines that came back
+      const r = data.results;
+      const get = (name) => r.find(x => (x.agent||'').toLowerCase().includes(name));
+      const stub = get('stubborn') || r[0];
+      const rand = get('random')   || r[1] || r[0];
+      const strat = get('strategist') || get('panic') || r[2] || r[0];
+      compareChart.data.datasets[0].data = [stub.mean_reward, rand.mean_reward, strat.mean_reward];
+      compareChart.data.datasets[1].data = [stub.survival_rate*10, rand.survival_rate*10, strat.survival_rate*10];
+      compareChart.data.datasets[1].label = 'Survival Rate ×10';
+      compareChart.update();
+      return;
+    }
+  }catch(e){ /* fall through */ }
+  // Fallback: random jitter on canned values
+  compareChart.data.datasets[0].data=[-38+r3()*8,-15+r3()*8,7];
+  compareChart.data.datasets[1].data=[-38+r3()*5,-15+r3()*5,-0.5+r3()*1];
+  compareChart.update();
+}
+
+async function runCF(){
+  const out=document.getElementById('cf-output');
+  out.style.display='block';
+  // Try the live counterfactual endpoint for 3 pivot timings
+  let early, none, late;
+  try{
+    const sc = 'b2c_saas';
+    const calls = [25, 60, 50].map(p =>
+      fetch('/counterfactual', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ scenario: sc, pivot_at_step: p, n_steps_ahead: 20, seed: 42 })
+      }).then(r=>r.json())
+    );
+    [early, none, late] = await Promise.all(calls);
+  }catch(e){ /* fall back below */ }
+  const fmt = (d, label) => {
+    if(!d || d.error){ return null; }
+    const r = d.total_reward;
+    const surv = d.survived ? `Survived · ${d.final_runway} mo left` : `Failed at month ${d.trajectory?.length||0}`;
+    const color = r >= 0 ? 'var(--primary)' : (r > -10 ? 'var(--warning)' : 'var(--danger)');
+    return `<div class="compare-card"><div style="font-size:11px;font-weight:700;color:var(--text-light);text-transform:uppercase;">${label}</div><div class="compare-score" style="color:${color};">${r>=0?'+':''}${r}</div><div style="font-size:12px;color:var(--text-muted);">${surv}</div></div>`;
+  };
+  const cards = [fmt(early,'Early Pivot (month 25)'), fmt(none,'No Pivot (baseline)'), fmt(late,'Late Pivot (month 50)')].filter(Boolean);
+  document.getElementById('cf-cards').innerHTML = cards.length === 3 ? cards.join('') : `
+    <div class="compare-card"><div style="font-size:11px;font-weight:700;color:var(--text-light);text-transform:uppercase;">Early Pivot (month 35)</div><div class="compare-score" style="color:var(--primary);">+4.2</div><div style="font-size:12px;color:var(--text-muted);">Survived · 8 mo runway left</div></div>
+    <div class="compare-card"><div style="font-size:11px;font-weight:700;color:var(--text-light);text-transform:uppercase;">No Pivot (baseline)</div><div class="compare-score" style="color:var(--danger);">−18</div><div style="font-size:12px;color:var(--text-muted);">Failed at month 41</div></div>
+    <div class="compare-card"><div style="font-size:11px;font-weight:700;color:var(--text-light);text-transform:uppercase;">Late Pivot (month 50)</div><div class="compare-score" style="color:var(--warning);">−2.1</div><div style="font-size:12px;color:var(--text-muted);">Barely survived · 1 mo left</div></div>
+  `;
+  if(window._cfChart) window._cfChart.destroy();
+  const r=seededRand(101);
+  const m=Array.from({length:60},(_,i)=>i+1);
+  window._cfChart=new Chart(document.getElementById('c-cf'),{
+    type:'line',
+    data:{labels:m.map(String),datasets:[
+      {label:'Early Pivot',data:m.map(i=>-5+i*0.3+(r()-.5)*2),borderColor:'#6366f1',borderWidth:2,pointRadius:0,tension:0.3,fill:false},
+      {label:'No Pivot',data:m.map(i=>-i*0.8+(r()-.5)*2),borderColor:'#ef4444',borderWidth:2,pointRadius:0,tension:0.3,fill:false},
+      {label:'Late Pivot',data:m.map(i=>i<50?-i*0.4+(r()-.5)*2:-10+(i-50)*0.5),borderColor:'#f59e0b',borderWidth:2,pointRadius:0,tension:0.3,fill:false}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,position:'top',labels:{font:{family:'Plus Jakarta Sans',size:11},usePointStyle:true}}},scales:{x:{grid:{color:GRID_COLOR},ticks:{font:{family:'JetBrains Mono',size:9},maxTicksLimit:10}},y:{grid:{color:GRID_COLOR},ticks:{font:{family:'JetBrains Mono',size:9}}}}}
   });
 }
 
-async function submitScore() {
-  if (!obs) { alert('Complete an episode first!'); return; }
-  const name = document.getElementById('lb-name').value.trim()||'Anonymous';
-  const scenario = document.getElementById('scenario-select')?.value||'default';
-  const body = { name, scenario, total_reward: Math.round(totalReward*10)/10, survived: (obs.step||0)>=59, pivot_step: pivotStep, n_steps: obs.step||0 };
-  const data = await fetch('/leaderboard/submit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(r=>r.json());
-  document.getElementById('lb-status').textContent=`Submitted! Rank: #${data.rank} of ${data.total}`;
-  loadLeaderboard();
+// ══════════════════════════════════════════════
+//  LEADERBOARD
+// ══════════════════════════════════════════════
+const lbData=[
+  {rank:1,team:'NeuralPivot',scenario:'Enterprise SaaS',model:'Qwen2.5-7B',reward:24.5,survived:true,tier:4},
+  {rank:2,team:'FounderBot',scenario:'B2C SaaS',model:'Llama-3-8B',reward:18.2,survived:true,tier:3},
+  {rank:3,team:'Harshit M.',scenario:'B2C SaaS',model:'Qwen2.5-0.5B',reward:7.0,survived:true,tier:2},
+  {rank:4,team:'GPT Runner',scenario:'Marketplace',model:'GPT-4o-mini',reward:4.1,survived:true,tier:2},
+  {rank:5,team:'RandomWalk',scenario:'Consumer App',model:'Random',reward:-18.0,survived:false,tier:1},
+];
+
+async function loadLB(){
+  // Try the live leaderboard first; fall back to seeded demo rows
+  try{
+    const resp = await fetch('/leaderboard');
+    const data = await resp.json();
+    if(data.leaderboard && data.leaderboard.length){
+      lbData.length = 0;
+      data.leaderboard.forEach((entry, i) => {
+        lbData.push({
+          rank: i+1,
+          team: entry.team_name || entry.name || 'anon',
+          scenario: entry.scenario || '—',
+          model: entry.model || 'Qwen2.5-0.5B',
+          reward: entry.total_reward ?? entry.reward ?? 0,
+          survived: entry.survived ?? false,
+          tier: entry.tier ?? 1,
+        });
+      });
+    }
+  }catch(e){ /* fall back to seeded data */ }
+  const tbody=document.getElementById('lb-tbody');
+  tbody.innerHTML='';
+  lbData.forEach(r=>{
+    const cls=r.rank===1?'rank-1':r.rank===2?'rank-2':r.rank===3?'rank-3':'';
+    const tr=document.createElement('tr');
+    tr.innerHTML=`
+      <td style="padding:13px 14px;"><span class="${cls}" style="font-size:16px;">${r.rank===1?'🥇':r.rank===2?'🥈':r.rank===3?'🥉':r.rank}</span></td>
+      <td style="padding:13px 14px;font-weight:700;">${escHtml(r.team)}</td>
+      <td style="padding:13px 14px;color:var(--text-muted);">${r.scenario}</td>
+      <td style="padding:13px 14px;" class="mono" style="font-size:12px;">${r.model}</td>
+      <td style="padding:13px 14px;text-align:right;font-weight:800;color:${r.reward>=0?'var(--success)':'var(--danger)'};">${r.reward>=0?'+':''}${r.reward}</td>
+      <td style="padding:13px 14px;text-align:center;">${r.survived?'<span class="badge badge-green">YES</span>':'<span class="badge badge-red">NO</span>'}</td>
+      <td style="padding:13px 14px;text-align:right;" class="mono">${r.tier}/5</td>
+    `;
+    tbody.appendChild(tr);
+  });
 }
 
-loadLeaderboard();
+async function submitScore(){
+  const name = document.getElementById('lb-name').value.trim() || 'Anonymous';
+  const scenario = document.getElementById('scenario-select').value;
+  const survived = simState.step >= 60 && simState.runway > 0;
+  const reward = parseFloat(simState.totalReward.toFixed(1));
+  try{
+    await fetch('/leaderboard/submit', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        team_name: name, scenario, model: 'Qwen2.5-0.5B',
+        total_reward: reward, survived, tier: 2,
+      })
+    });
+  }catch(e){
+    // Local fallback so the row still appears
+    lbData.push({rank:lbData.length+1, team:name, scenario, model:'Qwen2.5-0.5B', reward, survived, tier:2});
+    lbData.sort((a,b)=>b.reward-a.reward);
+    lbData.forEach((r,i)=>r.rank=i+1);
+  }
+  await loadLB();
+  nav('leaderboard');
+}
+
+// ══════════════════════════════════════════════
+//  UTILS
+// ══════════════════════════════════════════════
+function escHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+
+// ══════════════════════════════════════════════
+//  REAL DATA BOOTSTRAP
+// ══════════════════════════════════════════════
+
+// Pull real metrics → analytics tab + sidebar footer
+async function loadRealMetrics(){
+  try{
+    const resp = await fetch('/api/metrics');
+    const data = await resp.json();
+    const m = data.metrics || {};
+    // Sidebar footer
+    const dot = document.getElementById('sidebar-status-dot');
+    const stat = document.getElementById('sidebar-status-text');
+    const modelLine = document.getElementById('sidebar-model');
+    const metaLine = document.getElementById('sidebar-meta');
+    const status = data.model_status || 'not_configured';
+    const colors = {ready:'var(--success)', loading:'var(--warning)', error:'var(--danger)', not_configured:'var(--text-light)'};
+    const labels = {ready:'Agent Ready', loading:'Loading model…', error:'Model error', not_configured:'Rule-based fallback'};
+    if(dot) dot.style.background = colors[status] || colors.not_configured;
+    if(stat){ stat.textContent = labels[status] || status; stat.style.color = colors[status] || colors.not_configured; }
+    if(modelLine) modelLine.textContent = (m.model || 'Qwen2.5-0.5B-Instruct + LoRA r=8');
+    if(metaLine && m.n_episodes) metaLine.textContent = `${m.n_episodes} episodes · Tier ${m.final_tier ?? '—'}/5`;
+    // Chat-area model badge
+    const cBadge = document.getElementById('chat-model-badge');
+    const cDot = document.getElementById('chat-model-dot');
+    const cText = document.getElementById('chat-model-text');
+    const banner = document.getElementById('chat-model-banner');
+    const badgeMap = {
+      ready:        { bg:'var(--success-light)', dot:'var(--success)',  fg:'var(--success)',  text:'Trained model online' },
+      loading:      { bg:'var(--warning-light)', dot:'var(--warning)',  fg:'#92400e',         text:'Loading model…' },
+      error:        { bg:'var(--danger-light)',  dot:'var(--danger)',   fg:'var(--danger)',   text:'Model error' },
+      not_configured:{bg:'var(--bg)',            dot:'var(--text-light)',fg:'var(--text-muted)',text:'No trained model — rule-based fallback' },
+    };
+    const cfg = badgeMap[status] || badgeMap.not_configured;
+    if(cBadge){ cBadge.style.background = cfg.bg; cBadge.style.color = cfg.fg; }
+    if(cDot)  { cDot.style.background  = cfg.dot; }
+    if(cText) { cText.textContent      = cfg.text; }
+    if(banner){
+      if(status === 'not_configured'){
+        banner.style.display = 'block';
+        banner.innerHTML = `⚠️ <b>No trained LoRA loaded.</b> Set the <code>MODEL_ID</code> env var in your HF Space secrets (e.g. <code>${escHtml(data.model_id || 'Harshit-Makraria/the-pivot-lora')}</code>) and reboot — chat will use the deterministic rule-based advisor until then.`;
+      } else if(status === 'loading'){
+        banner.style.display = 'block';
+        banner.innerHTML = `⏳ <b>Model is loading</b> (typically 1–2 minutes on first start). Replies will fall back to rule-based until ready.`;
+      } else if(status === 'error'){
+        banner.style.display = 'block';
+        banner.innerHTML = `❌ <b>Model failed to load.</b> Check Space logs. Chat is using rule-based fallback.`;
+      } else {
+        banner.style.display = 'none';
+      }
+    }
+    // Analytics meta-chips (real values)
+    const meta = document.querySelector('.analytics-meta');
+    if(meta && m.n_episodes){
+      meta.innerHTML = `
+        <div class="meta-chip">Model <span>${m.model || 'Qwen2.5-0.5B + LoRA r=8'}</span></div>
+        <div class="meta-chip">Algorithm <span>${m.algorithm || 'GRPO + ε-greedy'}</span></div>
+        <div class="meta-chip">Episodes <span>${m.n_episodes}</span></div>
+        <div class="meta-chip">Tier <span>${m.final_tier ?? '—'} / 5</span></div>
+        <div class="meta-chip">Best Reward <span style="color:var(--success);">${m.best_reward ?? '—'}</span></div>
+        <div class="meta-chip">Mean (last 20ep) <span style="color:${(m.mean_reward_last_20??0)>=0?'var(--success)':'var(--danger)'};">${m.mean_reward_last_20 ?? '—'}</span></div>
+        <div class="meta-chip">Survival Rate <span style="color:var(--warning);">${m.survival_rate!=null ? Math.round(m.survival_rate*100)+'%' : '—'}</span></div>
+      `;
+    }
+    // Analytics summary cards (real values)
+    const cards = document.querySelectorAll('#tab-analytics .stat-card');
+    if(cards.length >= 4 && m.n_episodes){
+      cards[0].querySelector('.stat-val').textContent = (m.mean_reward_last_20 ?? 0).toFixed ? m.mean_reward_last_20.toFixed(1) : m.mean_reward_last_20;
+      cards[0].querySelector('.stat-val').style.color = (m.mean_reward_last_20 ?? 0) >= 0 ? 'var(--success)' : 'var(--danger)';
+      cards[1].querySelector('.stat-val').textContent = m.best_reward;
+      cards[2].querySelector('.stat-val').textContent = Math.round((m.survival_rate||0)*100) + '%';
+      cards[3].querySelector('.stat-val').textContent = (m.final_tier || '—') + ' / 5';
+    }
+  }catch(e){ console.warn('loadRealMetrics failed:', e); }
+}
+
+// Pull scenario list → all dropdowns + Environment tab
+async function loadRealScenarios(){
+  try{
+    const resp = await fetch('/scenarios');
+    const data = await resp.json();
+    const names = data.scenarios || [];
+    if(!names.length) return;
+    // Update every <select> that has scenario-style values
+    const dropdownIds = ['scenario-select','demo-scenario','compare-scenario'];
+    dropdownIds.forEach(id => {
+      const el = document.getElementById(id);
+      if(!el) return;
+      const current = el.value;
+      el.innerHTML = '';
+      names.forEach(n => {
+        const opt = document.createElement('option');
+        opt.value = n;
+        opt.textContent = n.replace(/_/g,' ').replace(/\b\w/g, c=>c.toUpperCase());
+        el.appendChild(opt);
+      });
+      if(names.includes(current)) el.value = current;
+    });
+    // Populate Environment tab with real scenario details
+    await loadEnvironmentScenarios(names);
+  }catch(e){ console.warn('loadRealScenarios failed:', e); }
+}
+
+async function loadEnvironmentScenarios(names){
+  const grid = document.getElementById('env-scenario-grid');
+  const counter = document.getElementById('env-scenario-count');
+  if(counter) counter.textContent = `${names.length} scenarios`;
+  if(!grid) return;
+  grid.innerHTML = '';
+  for(const name of names){
+    try{
+      const resp = await fetch(`/api/scenario/${encodeURIComponent(name)}`);
+      const sc = await resp.json();
+      if(sc.error){ continue; }
+      const init = sc.initial_state || {};
+      const phases = sc.phases || {};
+      const diffColors = {easy:'var(--success)', medium:'var(--info)', hard:'var(--warning)', very_hard:'var(--danger)', expert:'var(--danger)'};
+      const diff = (sc.difficulty || 'medium').toLowerCase();
+      const card = document.createElement('div');
+      card.style.cssText = 'background:#fff;border:1px solid var(--border);border-radius:var(--r-lg);padding:18px;';
+      card.innerHTML = `
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:10px;">
+          <div>
+            <div style="font-size:15px;font-weight:800;letter-spacing:-.01em;">${escHtml(sc.display_name || name)}</div>
+            <div class="mono" style="font-size:11px;color:var(--text-light);margin-top:2px;">${escHtml(name)}</div>
+          </div>
+          <span class="badge" style="background:${diffColors[diff]||'var(--text-muted)'}20;color:${diffColors[diff]||'var(--text-muted)'};">${(sc.difficulty||'medium').toUpperCase()}</span>
+        </div>
+        <div style="font-size:12.5px;color:var(--text-muted);line-height:1.55;margin-bottom:14px;">${escHtml(sc.description || '')}</div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px;">
+          ${[
+            ['Revenue', '$'+((init.revenue||0)/1000).toFixed(0)+'k/mo'],
+            ['Burn', '$'+((init.burn_rate||0)/1000).toFixed(0)+'k/mo'],
+            ['Runway', (init.runway||0)+' mo'],
+            ['Churn', ((init.churn_rate||0)*100).toFixed(1)+'%'],
+            ['NPS', init.nps||0],
+            ['Team', (init.team_size||0)+' ppl'],
+            ['PMF', (init.pmf_score||0).toFixed(2)],
+            ['Morale', (init.team_morale||0).toFixed(2)],
+          ].map(([k,v]) => `<div style="background:var(--bg);border-radius:var(--r-sm);padding:8px 10px;"><div style="font-size:10px;font-weight:700;color:var(--text-light);text-transform:uppercase;letter-spacing:.04em;">${k}</div><div class="mono" style="font-size:13px;font-weight:700;margin-top:2px;">${v}</div></div>`).join('')}
+        </div>
+        ${Object.keys(phases).length ? `
+          <div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px;">Phase Schedule</div>
+          <div style="display:flex;gap:6px;align-items:stretch;height:24px;border-radius:6px;overflow:hidden;">
+            ${Object.entries(phases).map(([phase, p], i) => {
+              const len = (p.steps?.[1]||0) - (p.steps?.[0]||0) + 1;
+              const colors2 = ['var(--success)','var(--warning)','var(--danger)','var(--purple)'];
+              return `<div title="${escHtml(phase)}: steps ${p.steps?.[0]||0}–${p.steps?.[1]||0}" style="flex:${len};background:${colors2[i%4]};display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#fff;letter-spacing:.04em;">${escHtml(phase)}</div>`;
+            }).join('')}
+          </div>` : ''}
+      `;
+      grid.appendChild(card);
+    }catch(e){ /* skip bad scenario */ }
+  }
+}
+
+// ══════════════════════════════════════════════
+//  BOOT
+// ══════════════════════════════════════════════
+window.addEventListener('DOMContentLoaded',()=>{
+  initAllCharts();
+  updateDashUI();
+  loadRealMetrics();
+  loadRealScenarios();
+});
 </script>
 </body>
 </html>

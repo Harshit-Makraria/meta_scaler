@@ -6,6 +6,7 @@ import json
 import os
 import pathlib
 import sys
+import math
 from fastapi import Query
 from fastapi.responses import HTMLResponse, FileResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
@@ -38,12 +39,18 @@ SCENARIOS_DIR = pathlib.Path(__file__).parent.parent / "scenarios"
 STATIC_DIR    = pathlib.Path(__file__).parent.parent / "static"
 
 # ── W&B init ──────────────────────────────────────────────────────────────
-if os.getenv("WANDB_API_KEY"):
-    wlog.init(
-        project=os.getenv("WANDB_PROJECT", "models-nexica-ai"),
-        run_name=os.getenv("WANDB_RUN_NAME"),
-        config={"env_version": "0.1.0", "max_steps": 60},
-    )
+WANDB_API_KEY = os.getenv("WANDB_API_KEY", "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")
+if WANDB_API_KEY:
+    try:
+        import wandb
+        wandb.login(key=WANDB_API_KEY)
+        wlog.init(
+            project=os.getenv("WANDB_PROJECT", "models-nexica-ai"),
+            run_name=os.getenv("WANDB_RUN_NAME"),
+            config={"env_version": "0.1.0", "max_steps": 60},
+        )
+    except Exception as e:
+        print(f"[wandb] Login/Init failed: {e}")
 
 # ── Shared env instance for the UI (separate from WebSocket sessions) ─────
 _ui_env: ThePivotEnvironment | None = None
@@ -191,6 +198,34 @@ def healthz():
     return {"status": "ok", "service": "the-pivot", "env": "ThePivotEnvironment"}
 
 
+# ── Real-data endpoints (drive the dashboard) ─────────────────────────────
+@app.get("/api/metrics")
+def api_metrics():
+    """Return real training metrics from docs/plots/metrics.json + run summary."""
+    metrics_path = _PROJECT_ROOT / "docs" / "plots" / "metrics.json"
+    metrics = {}
+    if metrics_path.exists():
+        try:
+            metrics = json.loads(metrics_path.read_text(encoding="utf-8"))
+        except Exception:
+            metrics = {}
+    return {
+        "metrics": metrics,
+        "model_status": _model_status,
+        "model_id": _MODEL_ID or None,
+        "leaderboard_size": len(_leaderboard),
+    }
+
+
+@app.get("/api/scenario/{name}")
+def api_scenario_detail(name: str):
+    """Return the full scenario JSON for the Environment tab."""
+    sc = _load_scenario(name)
+    if sc is None:
+        return {"error": f"Scenario '{name}' not found"}
+    return sc
+
+
 @app.get("/debug/routes", include_in_schema=False)
 def debug_routes():
     """List all registered routes — diagnostic for deployment issues."""
@@ -268,6 +303,93 @@ def compare_baselines(scenario: str = Query(default="b2c_saas"), n_episodes: int
         r = run_episodes(agent, sc, n_episodes)
         results.append(r)
     return {"scenario": scenario, "n_episodes": n_episodes, "results": results}
+
+
+def _downsample_points(points: list[dict], max_points: int) -> list[dict]:
+    if len(points) <= max_points:
+        return points
+    stride = max(1, math.ceil(len(points) / max_points))
+    sampled = points[::stride]
+    if sampled[-1] != points[-1]:
+        sampled.append(points[-1])
+    return sampled[:max_points]
+
+
+@app.get("/wandb/history")
+def wandb_history(
+    entity: str | None = Query(default=None),
+    project: str | None = Query(default=None),
+    run_id: str | None = Query(default=None),
+    metric_primary: str = Query(default="episode_reward"),
+    metric_secondary: str = Query(default="survival_rate"),
+    max_points: int = Query(default=200, ge=20, le=1000),
+):
+    """Fetch run history from Weights & Biases for dashboard analytics."""
+    try:
+        import wandb
+    except Exception as exc:
+        return {"error": f"wandb import failed: {exc}"}
+
+    resolved_entity = entity or os.getenv("WANDB_ENTITY")
+    resolved_project = project or os.getenv("WANDB_PROJECT", "models-nexica-ai")
+    if not resolved_entity or not resolved_project:
+        return {
+            "error": "Missing W&B entity/project. Set WANDB_ENTITY and WANDB_PROJECT env vars or pass query params.",
+            "entity": resolved_entity,
+            "project": resolved_project,
+        }
+
+    try:
+        api = wandb.Api()
+        if run_id:
+            run = api.run(f"{resolved_entity}/{resolved_project}/{run_id}")
+        else:
+            runs = api.runs(path=f"{resolved_entity}/{resolved_project}", per_page=1, order="-created_at")
+            if not runs:
+                return {
+                    "error": "No runs found for project",
+                    "entity": resolved_entity,
+                    "project": resolved_project,
+                }
+            run = runs[0]
+
+        keys = ["_step", metric_primary]
+        if metric_secondary and metric_secondary != metric_primary:
+            keys.append(metric_secondary)
+
+        raw_points: list[dict] = []
+        for row in run.scan_history(keys=keys):
+            step = row.get("_step")
+            if step is None:
+                continue
+            raw_points.append(
+                {
+                    "step": int(step),
+                    "primary": row.get(metric_primary),
+                    "secondary": row.get(metric_secondary) if metric_secondary else None,
+                }
+            )
+
+        points = _downsample_points(raw_points, max_points=max_points)
+        return {
+            "entity": resolved_entity,
+            "project": resolved_project,
+            "run_id": getattr(run, "id", run_id),
+            "run_name": getattr(run, "name", "unknown"),
+            "metric_primary": metric_primary,
+            "metric_secondary": metric_secondary,
+            "points": points,
+            "total_points": len(raw_points),
+            "available_summary_keys": sorted(list((run.summary or {}).keys()))[:100],
+            "wandb_url": getattr(run, "url", None),
+        }
+    except Exception as exc:
+        return {
+            "error": str(exc),
+            "entity": resolved_entity,
+            "project": resolved_project,
+            "run_id": run_id,
+        }
 
 
 @app.post("/advisor")
