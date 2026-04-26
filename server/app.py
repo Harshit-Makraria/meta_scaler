@@ -60,7 +60,7 @@ _model_error     = ""
 
 SYSTEM_PROMPT = """You are a Strategist Co-Founder AI trained with reinforcement learning to navigate multi-dimensional startup challenges. You help founders manage Product, Team, Marketing, Finance, and Market simultaneously.
 
-When given startup metrics, reply with DECISION: followed by exactly one action word.
+When given startup metrics, reply with RECOMMENDATION: followed by exactly one action word.
 Valid actions: EXECUTE | PIVOT | RESEARCH | FUNDRAISE | HIRE | CUT_COSTS | SELL | LAUNCH_FEATURE | MARKETING_CAMPAIGN | SET_PRICING | FIRE | PARTNERSHIP
 
 Give 2-3 sentences of clear strategic reasoning citing specific numbers. Be direct.
@@ -525,9 +525,9 @@ def chat_endpoint(req: ChatRequest):
         "EXECUTE", "PIVOT", "RESEARCH", "FUNDRAISE", "HIRE", "CUT_COSTS", "SELL",
         "LAUNCH_FEATURE", "MARKETING_CAMPAIGN", "SET_PRICING", "FIRE", "PARTNERSHIP",
     }
-    # Also handle "DECISION: ACTION" format
+    # Also handle "RECOMMENDATION: ACTION" format
     for line in response.split("\n"):
-        if line.strip().upper().startswith("DECISION:"):
+        if line.strip().upper().startswith("RECOMMENDATION:"):
             first_word = line.split(":", 1)[1].strip().upper().rstrip(".,!:")
             break
     action = first_word if first_word in valid_actions else None

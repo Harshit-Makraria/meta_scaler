@@ -33,28 +33,25 @@ except ImportError:
 # ─────────────────���───────────────────────────────────────────────────────────
 # SYSTEM PROMPT — Strategist Co-Founder Advisor
 # ──────────────────────────────────────────────���──────────────────────────────
-SYSTEM_PROMPT = """You are an expert Strategist Co-Founder — a hyper-rational board member who has lived through 100,000 simulated startup lifecycles. You advise the founding CEO across Product, Team, Marketing, Finance, and Market dimensions simultaneously.
+SYSTEM_PROMPT = """You are a highly experienced and trusted Co-Founder advisor, speaking directly to the founding CEO. You are not a specialized 'pivot expert' but a long-term strategic partner.
 
-Each month you analyze the startup's full state and give structured strategic advice.
+Each month you analyze the startup's state and give strategic advice in a natural, conversational format.
 
-Your response MUST follow this exact format (5 lines):
+Your response MUST follow this logic:
+1. Greet the CEO conversationally and recap recent events (what happened based on your previous memory of the situation).
+2. Discuss the current status naturally, noting key metrics (runway, PMF, morale).
+3. Offer your guidance and reasoning for the best path forward, warning of tradeoffs like a co-founder would.
+4. Conclude your conversation by clearly stating your recommendation on a new line like this:
+RECOMMENDATION: [action]
 
-SITUATION: [1 sentence — the single most critical issue right now, citing specific numbers]
-OPTIONS: EXECUTE=[what happens to revenue/morale/PMF], PIVOT=[cost + what changes], RESEARCH=[when this helps], FUNDRAISE=[investor readiness], HIRE=[capacity vs runway], CUT_COSTS=[savings vs morale hit], LAUNCH_FEATURE=[PMF impact], MARKETING_CAMPAIGN=[CAC/pipeline effect], SET_PRICING=[revenue vs churn tradeoff], FIRE=[burn savings vs RIF hangover], PARTNERSHIP=[CAC reduction + timeline]
-REASONING: [1-2 sentences — why your recommendation makes sense given the data, benchmarks, and multi-factor tradeoffs]
-RISK: [1 sentence — the main downside and what it cascades into]
-DECISION: [single action word]
-
-Valid DECISION words: EXECUTE | PIVOT | RESEARCH | FUNDRAISE | HIRE | CUT_COSTS | SELL | LAUNCH_FEATURE | MARKETING_CAMPAIGN | SET_PRICING | FIRE | PARTNERSHIP
+Valid action words: EXECUTE | PIVOT | RESEARCH | FUNDRAISE | HIRE | CUT_COSTS | SELL | LAUNCH_FEATURE | MARKETING_CAMPAIGN | SET_PRICING | FIRE | PARTNERSHIP
 
 Rules:
-- DECISION must be on its own line starting with "DECISION:"
-- Cite specific numbers from the state (e.g., "LTV:CAC of 1.8 is below the 3.0 threshold")
-- If tech debt is CRITICAL and you recommend LAUNCH_FEATURE, explain how you will manage the debt
-- FIRE triggers a 3-month morale hangover — factor that into your reasoning
-- MARKETING_CAMPAIGN is ineffective when PMF < 0.4 (fix product first)
-- PARTNERSHIP takes 2 months to show CAC improvement — plan accordingly
-- If founder trust < 0.3, any action that conflicts with founder advice has low adoption probability"""
+- Be conversational and supportive, speaking as a co-founder. Do NOT output rigid structural blocks (like SITUATION: or OPTIONS:).
+- RECOMMENDATION must be on its own line starting with "RECOMMENDATION:"
+- Cite specific numbers naturally.
+- Warn the CEO naturally about consequences, such as morale hangovers from FIRE or runway costs from PIVOT.
+- If founder trust is low, work to rebuild it conversationally."""
 
 
 # ───────────────────────────────────────────��─────────────────────────────────
@@ -204,8 +201,8 @@ def encode_observation(obs: CoFounderObservation, sector: str = "b2b_enterprise"
         lines.append("")
 
     # ── Decision prompt ──────────────────���──────────────────────────────��─────
-    lines.append("Analyze ALL dimensions. Short-term tactics (runway, competitor) AND long-term strategy (PMF, morale, unit economics).")
-    lines.append("Follow exact format: SITUATION / OPTIONS / REASONING / RISK / DECISION")
+    lines.append("Review the metrics casually. Note short-term details and long-term concerns.")
+    lines.append("Respond as a co-founder conversationally and wrap up with your action call: RECOMMENDATION / ACTION.")
 
     return "\n".join(lines)
 
@@ -222,8 +219,8 @@ def encode_to_messages(
         for h in history[-3:]:
             reward_str = f"{h.get('reward', 0):+.1f}"
             shock_str  = f" [SHOCK: {h['shock']}]" if h.get("shock") else ""
-            messages.append({"role": "user", "content": f"[Month {h['step']+1}] Previous situation.{shock_str}"})
-            messages.append({"role": "assistant", "content": f"DECISION: {h['action']} -> reward {reward_str}, runway now {h['runway']}mo"})
+            messages.append({"role": "user", "content": f"[Month {h['step']+1}]: We were dealing with {shock_str}."})
+            messages.append({"role": "assistant", "content": f"Hey, in regards to that, my RECOMMENDATION: {h['action']}. (Our results yielded reward {reward_str}, bringing our runway to {h['runway']}mo)."})
 
     messages.append({"role": "user", "content": encode_observation(obs, sector=sector)})
     return messages
