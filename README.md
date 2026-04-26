@@ -2,9 +2,9 @@
 
 ## 📋 Table of Contents
 
-1. Hackathon Theme Alignment
-2. The Problem — A Gap No Benchmark Tests
-3. The Solution — Overview
+1. The Problem — A Gap No Benchmark Tests
+2. The Solution — Overview
+3. Hackathon Theme Alignment
 4. Environment Features
 5. A Single Episode — 60 Steps
 6. Reward Model
@@ -17,25 +17,7 @@
 
 ---
 
-## 1. Hackathon Theme Alignment
-
-This project primarily targets **Theme 2** and strongly touches three other themes:
-
-#### 🗺️ Theme 2 — Long-Horizon Planning · ⭐ Primary
-60-month simulation with sparse delayed rewards. The agent must decompose strategy, track state over an entire company lifecycle, and recover from early mistakes. A PIVOT in month 40 depends on decisions made in month 12.
-
-#### 🌍 Theme 3.1 — World Modeling (Professional) · Strong
-Agent maintains a persistent internal model of 6 dynamically interacting business subsystems in a partially observable world. Hidden market phases must be inferred from noisy signals — no oracle, no shortcuts.
-
-#### 🔁 Theme 4 — Self-Improvement · Supporting
-5-tier adaptive curriculum: harder scenarios unlock only when the agent proves competence on easier ones. 20% of episodes replay prior tiers to prevent forgetting. GRPO enables the agent to improve from its own episode history.
-
-#### 🤝 Theme 1 — Multi-Agent Interactions · Touches
-Three rule-based NPCs (Founder, Investor, Competitor) actively respond to the LLM's decisions — creating emergent pressure and surprise events. The trained agent is a single LLM, not a multi-LLM system.
-
----
-
-## 2. The Problem — A Gap No Benchmark Tests
+## 1. The Problem — A Gap No Benchmark Tests
 
 Every LLM agent benchmark in existence tests whether a model can **execute a known plan** in a sterile environment. None of them test whether a model can **advise a human founder through complex, multi-year strategic uncertainty**. 
 
@@ -58,7 +40,7 @@ Consider how real startups die when founders lack expert strategic advice:
 
 ---
 
-## 3. The Solution — Overview
+## 2. The Solution — Overview
 
 **The Pivot** is a 60-month startup simulation built as a fully [OpenEnv](https://pypi.org/project/openenv-core/)-compliant environment. An LLM agent acts as the founding CEO, making one strategic decision per month from **12 possible actions**. The market silently progresses through three hidden phases — GROWTH → SATURATION → DECLINE — at scenario-dependent timing that is never revealed.
 
@@ -81,6 +63,24 @@ LLM Agent ──(12 actions)──▶ CoFounderEnvironment (OpenEnv)
 ```
 
 The trained model must beat a **rule-based StrategistAgent** — an expert CEO following startup playbooks perfectly. If the LLM can't beat it, the training didn't work. If it can, the LLM learned genuine nuance.
+
+---
+
+## 3. Hackathon Theme Alignment
+
+This project primarily targets **Theme 2** and strongly touches three other themes:
+
+#### 🗺️ Theme 2 — Long-Horizon Planning · ⭐ Primary
+60-month simulation with sparse delayed rewards. The agent must decompose strategy, track state over an entire company lifecycle, and recover from early mistakes. A PIVOT in month 40 depends on decisions made in month 12.
+
+#### 🌍 Theme 3.1 — World Modeling (Professional) · Strong
+Agent maintains a persistent internal model of 6 dynamically interacting business subsystems in a partially observable world. Hidden market phases must be inferred from noisy signals — no oracle, no shortcuts.
+
+#### 🔁 Theme 4 — Self-Improvement · Supporting
+5-tier adaptive curriculum: harder scenarios unlock only when the agent proves competence on easier ones. 20% of episodes replay prior tiers to prevent forgetting. GRPO enables the agent to improve from its own episode history.
+
+#### 🤝 Theme 1 — Multi-Agent Interactions · Touches
+Three rule-based NPCs (Founder, Investor, Competitor) actively respond to the LLM's decisions — creating emergent pressure and surprise events. The trained agent is a single LLM, not a multi-LLM system.
 
 ---
 
