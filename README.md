@@ -1,3 +1,21 @@
+---
+title: The Pivot
+emoji: 🔄
+colorFrom: blue
+colorTo: purple
+sdk: docker
+app_port: 7860
+pinned: false
+license: mit
+tags:
+  - openenv
+  - reinforcement-learning
+  - rl-environment
+  - startup-simulation
+  - grpo
+  - meta-pytorch-hackathon-2026
+---
+
 # 🔄 FounderOS — CoFounder Strategist
 
 ## 📋 Table of Contents
