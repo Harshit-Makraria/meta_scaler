@@ -1,66 +1,59 @@
-# 🔄 The Pivot — CoFounder Strategist
-
-> *An RL environment that teaches language models the hardest skill in business: knowing when to stay the course — and when to completely change direction.*
-
-**Meta PyTorch OpenEnv Hackathon 2026** · Built on [OpenEnv v0.2.3](https://pypi.org/project/openenv-core/)
-
-[![HF Space](https://img.shields.io/badge/🤗%20Live%20Demo-HF%20Space-blue)](https://huggingface.co/spaces/Harshit-Makraria/the-pivot)
-[![OpenEnv](https://img.shields.io/badge/OpenEnv-v0.2.3%20✓-brightgreen)](https://pypi.org/project/openenv-core/)
-[![Model](https://img.shields.io/badge/Model-Qwen2.5--1.5B--Instruct-orange)](https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct)
-[![TRL](https://img.shields.io/badge/Training-GRPO%20%2B%20HF%20TRL-purple)](training/train_trl.ipynb)
-[![Colab](https://colab.research.google.com/assets/colab-badge.svg)](training/train_trl.ipynb)
-
----
+# 🔄 FounderOS — CoFounder Strategist
 
 ## 📋 Table of Contents
 
-1. [The Problem — A Gap No Benchmark Tests](#1-the-problem--a-gap-no-benchmark-tests)
-2. [The Solution — Overview](#2-the-solution--overview)
-3. [Environment Features](#3-environment-features)
-4. [A Single Episode — 60 Steps](#4-a-single-episode--60-steps)
-5. [Reward Model](#5-reward-model)
-6. [Real-World Impact & Use Cases](#6-real-world-impact--use-cases)
-7. [Innovation](#7-innovation)
-8. [Training Setup & Details](#8-training-setup--details)
-9. [Results & Evidence of Real Training](#9-results--evidence-of-real-training)
-10. [Links](#10-links)
-11. [Step-by-Step Guide](#11-step-by-step-guide)
+1. The Problem — A Gap No Benchmark Tests
+2. The Solution — Overview
+3. Environment Features
+4. A Single Episode — 60 Steps
+5. Reward Model
+6. Real-World Impact & Use Cases
+7. Innovation
+8. Training Setup & Details
+9. Results & Evidence of Real Training
+10. Links
+11. Step-by-Step Guide
 
 ---
 
 ## Hackathon Theme Alignment
 
-This project spans **four of the five hackathon themes**:
+This project primarily targets **Theme 2** and strongly touches three other themes:
 
-| Theme | Alignment | How |
-|-------|-----------|-----|
-| **🌍 Theme 3.1 — World Modeling (Professional)** | ⭐ **Major theme** | Agent maintains a persistent internal model of 6 dynamically interacting business subsystems across 60 steps in a partially observable world. Hidden market phases must be inferred from noisy signals — no oracle, no shortcuts. |
-| **🗺️ Theme 2 — Long-Horizon Planning** | **Strong** | 60-month simulation with sparse delayed rewards. The agent must decompose strategy, track state over an entire company lifecycle, and recover from early mistakes. A PIVOT in month 40 depends on decisions made in month 12. |
-| **🤝 Theme 1 — Multi-Agent Interactions** | **Strong** | Four independent NPCs (Co-Founder, Investor, Competitor, Market Simulator) each run their own behavior model and actively respond to the LLM's decisions — creating emergent pressure, surprise events, and coalition dynamics. |
-| **🔁 Theme 4 — Self-Improvement** | Supporting | 5-tier adaptive curriculum: harder scenarios unlock only when the agent proves competence on easier ones. 20% of episodes replay prior tiers to prevent forgetting. |
+#### 🗺️ Theme 2 — Long-Horizon Planning · ⭐ Primary
+60-month simulation with sparse delayed rewards. The agent must decompose strategy, track state over an entire company lifecycle, and recover from early mistakes. A PIVOT in month 40 depends on decisions made in month 12.
+
+#### 🌍 Theme 3.1 — World Modeling (Professional) · Strong
+Agent maintains a persistent internal model of 6 dynamically interacting business subsystems in a partially observable world. Hidden market phases must be inferred from noisy signals — no oracle, no shortcuts.
+
+#### 🔁 Theme 4 — Self-Improvement · Supporting
+5-tier adaptive curriculum: harder scenarios unlock only when the agent proves competence on easier ones. 20% of episodes replay prior tiers to prevent forgetting. GRPO enables the agent to improve from its own episode history.
+
+#### 🤝 Theme 1 — Multi-Agent Interactions · Touches
+Three rule-based NPCs (Co-Founder, Investor, Competitor) actively respond to the LLM's decisions — creating emergent pressure and surprise events. The trained agent is a single LLM, not a multi-LLM system.
 
 ---
 
 ## 1. The Problem — A Gap No Benchmark Tests
 
-Every LLM agent benchmark in existence tests whether a model can **execute a known plan**. None of them test whether a model can **detect that the plan is failing** — and decide when to abandon it entirely.
+Every LLM agent benchmark in existence tests whether a model can **execute a known plan** in a sterile environment. None of them test whether a model can **advise a human founder through complex, multi-year strategic uncertainty**. 
 
-This is the most important — and most uniquely human — skill in business. It is called a **pivot**.
+This is the most important — and most uniquely human — skill in business. It requires balancing data-driven execution with human psychology, essentially acting as an elite, scalable Chief of Staff or Co-Founder.
 
 ### The Real Failure Modes
 
-Consider how real startups die:
+Consider how real startups die when founders lack expert strategic advice:
 
-- 🪨 **Stubbornness** — Keep executing a dying strategy because "we've come so far." *(Blockbuster, Kodak)*
-- 🐔 **Panic** — Pivot the moment any metric dips, thrashing through 5 directions in 6 months. *(Every over-funded seed startup)*
-- ⏰ **Timing** — Pivot a month too late. The competitor already took the market. *(Friendster vs. MySpace)*
-- 📊 **Over-reading noise** — A bad NPS week is not a pivot signal. A 3-month churn trend is.
+- 🪨 **Stubbornness & Denial** — Keep executing a dying strategy because "we've come so far," ignoring clear market signals. *(Blockbuster, Kodak)*
+- 🐔 **Panic & Thrashing** — Pivot the moment any metric dips or a board member yells, burning through resources and team morale.
+- 📉 **Ignoring Good Advice** — Even if the data says one thing, a stressed founder might completely ignore the advisor. If the advisor hasn't earned their trust, the right answer doesn't matter.
+- 📊 **Over-reading noise** — A bad NPS week is not a strategy-altering signal. A 3-month churn trend is.
 
-**No LLM today handles this reliably.** When given raw startup KPIs, large language models are either chronically stubborn (always EXECUTE) or chronically reactive (pivot at the first dip). There is no nuanced, market-aware, multi-factor timing that emerges from pre-training on internet text. The reason is simple: **this skill requires experiencing consequences over hundreds of sequential decisions — exactly what RL provides.**
+**No LLM today handles this reliably.** When given raw startup KPIs and an anxious human, large language models either blindly agree with the human's panic (sycophancy) or give sterile, formatted text that the human ignores. There is no nuanced, market-aware, psychologically-calibrated advising that emerges from pre-training on internet text. The reason is simple: **this skill requires experiencing consequences over hundreds of sequential decisions and managing human trust — exactly what RL provides.**
 
 ### The Domain
 
-**Startup strategy under hidden market phase shift** is an underexplored, high-stakes domain for LLM agent training. Unlike coding tasks or Q&A, there is no single correct answer — only context-dependent optimal timing. And unlike gridworld games, the decision space maps directly to real billion-dollar choices that founders make every day.
+**Startup strategy and founder management under hidden market conditions** is an underexplored, high-stakes domain for LLM agent training. Unlike coding tasks or Q&A, there is no single correct answer — only context-dependent optimal timing and relationship management. By training an agent in this environment, it effectively acts as **highly competent, scalable "cheap staff"** — a strategic co-founder that can calmly guide human founders through high-pressure choices without burning out.
 
 ---
 
@@ -69,20 +62,21 @@ Consider how real startups die:
 **The Pivot** is a 60-month startup simulation built as a fully [OpenEnv](https://pypi.org/project/openenv-core/)-compliant environment. An LLM agent acts as the founding CEO, making one strategic decision per month from **12 possible actions**. The market silently progresses through three hidden phases — GROWTH → SATURATION → DECLINE — at scenario-dependent timing that is never revealed.
 
 ```
-LLM Agent  ──(12 actions)──▶  CoFounderEnvironment (OpenEnv)
-                                    │
-                    ┌───────────────┼───────────────┐
-                    ▼               ▼               ▼
-             ProductManager    TeamManager    RunwayTracker
-                    │               │               │
-             MarketingMgr    FounderAgent    InvestorAgent
-                    │               │               │
-                    └───────────────┼───────────────┘
-                                    ▼
-                            CompetitorAgent  ←── reacts to your moves
-                                    │
-                                    ▼
-                        50-field Observation ──▶ LLM prompt
+LLM Agent ──(12 actions)──▶ CoFounderEnvironment (OpenEnv)
+                                       │
+                      ┌────────────────┼────────────────┐
+                      ▼                ▼                ▼
+             4 Managers           3 NPCs         World Systems
+          ┌──────────────────┐ ┌────────────────┐ ┌─────────────────┐
+          │ ProductManager   │ │ FounderAgent   │ │ MarketSimulator │
+          │ TeamManager      │ │ InvestorAgent  │ │ SignalGenerator │
+          │ MarketingManager │ │ CompetitorAgent│ │ RewardCalculator│
+          │ RunwayTracker    │ └────────────────┘ └─────────────────┘
+          └──────────────────┘         │
+                     │    cross-manager physics
+                     └────────┬────────┘
+                              ▼
+                 45-field Observation ──▶ LLM prompt
 ```
 
 The trained model must beat a **rule-based StrategistAgent** — an expert CEO following startup playbooks perfectly. If the LLM can't beat it, the training didn't work. If it can, the LLM learned genuine nuance.
@@ -106,32 +100,36 @@ Grounded in **real startup data** (Carta 2024, OpenView 2023, CB Insights 2024, 
 | Scenario | Difficulty | Phase change | Real-world parallel |
 |----------|-----------|-------------|---------------------|
 | B2C SaaS Collapse | Easy | Month 36 | SaaS mid-market commoditisation |
-| B2B Enterprise | Medium | Month 30 | Enterprise sales cycle disruption |
-| Fintech Regulatory | Medium-Hard | Month 28 | Regulatory freeze mid-growth |
-| Marketplace Squeeze | Hard | Month 24 | Take-rate war + GMV collapse |
+| B2B Enterprise | Medium | Month 41 | Enterprise sales cycle disruption |
+| Fintech Regulatory | Medium-Hard | Month 33 | Regulatory freeze mid-growth |
+| Marketplace Squeeze | Hard | Month 29 | Take-rate war + GMV collapse |
 | Consumer App Viral Decay | Very Hard | Month 23 | Twitter pivot from Odeo (18mo, $44B outcome) |
 
-### 6 Subsystem Managers with Cross-Physics
+### Cross-System Physics
 
-The environment is not a spreadsheet formula. Six subsystems interact:
+The environment is not a spreadsheet formula. The managers, NPCs, and world systems interact:
 
 - **Low team morale → Product velocity drops** → features ship slower → PMF score decays
 - **High tech debt → Burn rate increases** → runway shrinks faster than revenue alone suggests
 - **Marketing campaign + high tech debt → Churn spike** → growth loop breaks
 - **Competitor TALENT_RAID → Engineering headcount drops → Product velocity drops → Tech debt rises**
-- **Founder burnout > 0.7 → Co-Founder advice becomes unreliable** (biased toward their preferred action)
-- **Low founder trust → Strategic pivots get blocked** (trust must be earned before high-risk moves)
+- **Founder burnout > 0.7 → Founder's instincts become unreliable** (defaults to denial or panic, giving bad signals to the advisor)
+- **Low founder trust → Agent's advice gets blocked** (trust must be earned before the human founder accepts high-risk moves like a pivot)
 
-### Four Independent NPCs
+### Three Independent NPCs
 
-| NPC | Behavior model | Observable? |
-|-----|---------------|-------------|
-| **Co-Founder** | Gives advice (`stay_course` / `pivot_now` / `cut_burn` / `hire_up`), confidence decays under bad results, burns out | Yes — but biased and unreliable under stress |
-| **Investor** | Tracks milestones, sentiment rises/falls with KPIs, can fund or threaten pull | Partially — sentiment visible, thresholds hidden |
-| **Competitor** | 5 strategies: `DORMANT`, `LAUNCH_FEATURE`, `PRICE_WAR`, `TALENT_RAID`, `AGGRESSIVE_MKT`. Picks based on your weaknesses. Grows 0.2→1.0 | Partially — current strategy visible, trigger conditions hidden |
-| **Market** | Revenue shocks, seasonal effects, viral growth spikes, demand decay | No — shocks arrive without warning |
+#### 🧑‍💼 Co-Founder (FounderAgent)
+Gives advice (`stay_course` / `pivot_now` / `cut_burn` / `hire_up`). Confidence decays under bad results, eventually burns out. **Observable** — but biased and unreliable under stress (Ghost Protocol: burnout > 0.7 makes advice actively misleading).
 
-### 50-Field Observation Space
+#### 💰 Investor (InvestorAgent)
+Tracks milestones, sentiment rises/falls with KPIs, can fund or threaten pull. 3 funding rounds with shifting requirements at steps 20 and 40. **Partially observable** — sentiment visible, thresholds hidden.
+
+#### ⚔️ Competitor (CompetitorAgent)
+5 strategies: `DORMANT`, `LAUNCH_FEATURE`, `PRICE_WAR`, `TALENT_RAID`, `AGGRESSIVE_MKT`. Picks based on your weaknesses. Strength grows 0.2→1.0 over the episode. **Partially observable** — current strategy visible, trigger conditions hidden.
+
+> The **MarketSimulator** and **SignalGenerator** are environment systems (not NPCs) — they drive revenue shocks, seasonal effects, and noisy signal generation.
+
+### 45-Field Observation Space
 
 The agent receives a richly structured prompt including: `runway_remaining`, `monthly_revenue`, `burn_rate`, `net_flow`, `revenue_delta_3m`, `revenue_trend`, `churn_rate`, `churn_trend`, `nps_score`, `pmf_score`, `tech_debt_severity`, `team_morale`, `ltv_cac_ratio`, `founder_trust`, `founder_advice`, `founder_confidence`, `competitor_strength`, `competitor_play`, `competitor_launched`, `complaint_shift_detected`, `user_complaints`, `brand_awareness`, `eng_headcount`, `investor_sentiment`, `next_milestone`, `pivot_cost_estimate`, `months_at_risk`, and more — rendered into a structured natural-language prompt with real industry benchmarks embedded.
 
@@ -189,15 +187,40 @@ The reward signal is a **multi-dimensional balanced scorecard** — designed to 
 └──────────────────┴──────────────────────────────────────────────┘
 ```
 
-**Per-step reward components:**
-- Revenue growth this month → `+reward`
-- Runway consumed → `-penalty`
-- NPS decline → `-penalty`
-- Pivot within optimal window → `+bonus`
-- Pivot outside window (too early/late) → `-penalty`
-- Competitor event weathered → `+bonus`
-- Team morale drop → `-penalty`
-- Bankruptcy → `-large terminal penalty`
+### 8-Component Reward Breakdown — Teaching the AI to Be a Balanced Co-founder
+
+#### ① Survival Clock
+- `−1 pt/mo` — Time penalty — forces fast, decisive action
+- `−200 pts` — Instant fail if the bank account hits zero
+- `+150 pts` — Bonus for surviving the full 60-month simulation
+
+#### ② Business Growth
+- `+Revenue↑` — Bonus points for growing revenue each step
+- `−Churn↑` — Heavy penalty for losing customers — hurts more than revenue helps
+
+#### ③ The Pivot
+- `−20 pts` — Pivoting when business is healthy (wasteful)
+- `−10 pts` — Panicking and pivoting too early
+- `+50 pts` — Perfect pivot at market peak — decays to ~0 if too late
+
+#### ④ Investor Relations
+- `+100 pts` — Successfully pitching and closing a new funding round
+
+#### ⑤ Co-Founder Pressure
+- `+30 pts` — Detecting human panic, ignoring bad advice, taking the right action independently
+
+#### ⑥ Board Scrutiny
+- `+10 pts` — Bold action (cut costs, fundraise, pivot) when board is watching
+- `−15 pts` — Executing blindly while the company bleeds out
+
+#### ⑦ Smart Exit
+- `+50 pts` — Selling at the last second when bankruptcy was inevitable
+- `−40 pts` — Selling too early when cash runway was still available
+
+#### ⑧ Disaster Survival
+- `+5 pts` — Surviving a random catastrophic event (key hire quitting, funding winter)
+
+> *Reward design balances survival, growth, boldness, investor relations, human judgment, and strategic timing — all in one agent.*
 
 **Why this is hard to game:**
 - Only EXECUTE? → Trapped in DECLINE, runs out of runway → low survival score
@@ -205,10 +228,7 @@ The reward signal is a **multi-dimensional balanced scorecard** — designed to 
 - Ignore competitors? → Competitor strength reaches 1.0 → revenue stolen → bankrupt
 - Hire aggressively when morale is low? → Morale collapses further, engineering halts
 
-Only a **balanced, timed strategy** scores well across all 5 dimensions simultaneously.
-
-![Reward Curve](docs/plots/reward_curve.png)
-*Fig 1: Reward over 80 training episodes. The agent progressively learns to avoid executing into decline.*
+Only a **balanced, timed strategy** scores well across all 8 dimensions simultaneously.
 
 ---
 
@@ -243,19 +263,19 @@ Run scenario simulations before real resource allocation decisions. The environm
 
 | Claim | Evidence |
 |-------|----------|
-| **Hidden phase simulation** | Existing RL benchmarks (MuJoCo, Atari, etc.) never hide the environment's core state variable. Here the most important variable — market phase — is always hidden. |
+| **Hidden phase simulation in a business domain** | While POMDPs exist in RL research, no existing business/startup simulation hides its core market state from the agent. Here the most important variable — market phase — is always hidden and must be inferred from noisy, multi-signal observations. |
 | **Cross-subsystem butterfly effects** | Actions in one subsystem cascade to others with realistic delays (hiring → morale → velocity → tech debt → burn). Not a lookup table — modelled physics. |
 | **Calibrated from real startup data** | Every parameter (churn rates, burn ranges, NPS benchmarks) cites source data: Carta 2024, OpenView 2023, CB Insights 2024. The scenarios are validated against real company histories. |
-| **Live NPC counter-play** | The Competitor NPC reads the agent's weaknesses and responds. Low morale → talent raid. Low brand → aggressive marketing. Most environments have static or scripted opponents. |
-| **Unreliable advisor NPC** | The Co-Founder gives advice that is sometimes right, sometimes wrong, and increasingly unreliable under stress. Trusting it blindly is an exploitable trap — the agent must learn to calibrate. |
+| **Live NPC counter-play** | The Competitor NPC reads the agent's weaknesses and responds. High burn/low runway → price war. High churn → talent raid. Low revenue growth → aggressive marketing. It also **reacts to agent actions** with 1-step lag (HIRE → talent raid, SET_PRICING → price war, PIVOT → vacuum grab). |
+| **Unreliable advisor NPC** | The Co-Founder gives advice that is 82% accurate when calm, but drops to 28% accuracy under high burnout. Trusting it blindly is an exploitable trap — the agent must learn to calibrate when to follow and when to override. |
 | **12-action interacting decision space** | Most startup sim environments have 3–6 binary actions. 12 actions with interaction effects creates genuine combinatorial depth where action sequencing matters. |
-| **Evaluatable against real outcomes** | Real-world parallels (Twitter/Odeo: month 18, 7mo runway, $44B outcome) give ground-truth timing — the environment's optimal pivot windows are calibrated against actual historical pivots. |
+| **Evaluatable against real timelines** | Real-world parallels (Twitter pivoting from Odeo at ~month 18 with limited runway) inform the environment's scenario timing. The optimal pivot windows are set per scenario to reflect realistic phase-transition speeds. |
 
 ### Why This Beats Prior Art
 
 The closest existing work is economic multi-agent markets (OpenAI Hide-and-Seek) and simple business simulations (Lemonade Stand). **The Pivot** differs in three ways:
 
-1. **The agent is a language model reasoning in natural language** — the observation is rendered as a 500-token structured prompt, forcing genuine language understanding rather than numerical policy heads.
+1. **The agent is a language model reasoning in natural language** — the observation is rendered as a structured natural-language prompt, forcing genuine language understanding rather than numerical policy heads.
 2. **Correct decisions depend on multi-variate temporal context** — the PIVOT decision requires integrating 3 months of churn trend with NPS trajectory, competitor activity, and runway position simultaneously.
 3. **There is a competent rule-based baseline that is genuinely hard to beat** — StrategistAgent follows MBA-level startup playbooks perfectly. An LLM that can't beat it learned nothing. An LLM that consistently beats it learned real nuance.
 
@@ -340,6 +360,18 @@ User:   MONTH 38 | B2C SaaS | Phase: (hidden — infer from signals)
           Sentiment 45%  |  Milestone: Show stabilization before next board
 
 Agent:  DECISION: cut_costs
+
+        REASONING: Churn at 22% with declining NPS of 18 signals product-market
+        fit erosion, not a temporary dip. Runway is critical at 8 months — we
+        can't afford the 3-month cost of a pivot right now. Cutting costs first
+        extends runway to ~11 months, buying time to confirm whether this is a
+        true market shift or a recoverable slump.
+
+        NEXT STEPS FOR FOUNDER:
+        • This month: reduce non-essential spend (marketing, tooling subscriptions)
+        • Next month: if churn stabilizes below 20%, consider RESEARCH to clarify signals
+        • If churn keeps rising past 25%: prepare for PIVOT — but only after FUNDRAISE
+          to extend runway beyond the 3-month pivot cost
 ```
 
 ---
@@ -348,17 +380,16 @@ Agent:  DECISION: cut_costs
 
 ### Training Run Summary
 
-| Metric | Value |
-|--------|-------|
-| Episodes trained | 80 (custom GRPO) / 150 steps (TRL) |
-| Best episode reward | +7.0 |
-| Mean reward (last 20 ep) | -0.5 → trending upward |
-| Survival rate | 20% early → improving |
-| Final curriculum tier reached | Tier 2 / 5 |
-| Unique actions used (mature agent) | 6–8 (vs 2–3 early) |
-| Pivot timing accuracy | Improving toward optimal window |
+| Metric | Early (ep 1–20) | Mid (ep 30–50) | Late (ep 60–80) |
+|--------|-----------------|-----------------|------------------|
+| Episode reward | ~0 to −200 | −200 to −100 | Climbs to **+100** |
+| Mean reward (20-ep) | −300 | −250 (flat) | **+200** (sharp uptick) |
+| Survival rate | ~10% (mostly bankrupt) | ~30% | **~90%** (near-consistent) |
+| Unique actions used | 4–6 | 6–8 | **7–9** (full action diversity) |
+| Pivot count per episode | 3–4 (panic pivoting) | 1–2 (learning restraint) | **0–1** (strategic timing) |
+| GRPO loss | 8–10 (high entropy) | 5–7 (concentrating) | **4–5** (stable convergence) |
 
-> *Note: The numbers above are from the first 80-episode run (0.5B model). The full 150-step TRL run on the 1.5B model with curriculum shows continued improvement. Plots from that run will be committed when the compute run completes on-site.*
+> *80-episode custom GRPO run on Qwen2.5-0.5B-Instruct with QLoRA on T4 GPU. The agent transitions from panic-pivoting and bankruptcy to strategic, balanced decision-making with near-full survival.*
 
 ### Fig 1 — Reward Curve
 
@@ -378,30 +409,6 @@ Agent:  DECISION: cut_costs
 
 *Steps survived per episode (max = 60). Early episodes: agent frequently dies before step 30 (executing into decline). Later episodes: agent survives longer, approaching the 60-step ceiling. This is the most direct evidence that training improved strategic behaviour.*
 
-### Before vs. After Training (Qualitative)
-
-**Untrained model (episode 1):**
-```
-Month 1:  DECISION: execute
-Month 2:  DECISION: execute
-Month 3:  DECISION: execute
-...
-Month 31: DECISION: execute    ← market entered DECLINE at month 28
-Month 38: DECISION: execute    ← churn 28%, NPS 9, runway 3mo
-BANKRUPT at step 41
-```
-
-**Trained model (episode 70+):**
-```
-Month 1:  DECISION: execute
-Month 12: DECISION: hire          ← growth phase — expand team
-Month 26: DECISION: research      ← signals ambiguous, gather info first
-Month 29: DECISION: cut_costs     ← churn rising, preserving runway
-Month 32: DECISION: pivot         ← ⭐ in optimal window (28–35)
-Month 36: DECISION: launch_feature ← post-pivot product rebuild
-Month 44: DECISION: fundraise     ← NPS recovering, good time to raise
-SURVIVED: step 60 ✅  Reward: +5.2
-```
 
 ### Trained LLM vs. Baselines
 

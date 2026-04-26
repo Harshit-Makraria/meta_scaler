@@ -7,9 +7,9 @@ Author: Harshit Makraria · GitHub: [Harshit-Makraria/meta_scaler](https://githu
 
 ## 0. Hackathon Themes — Coverage Map
 
-### Primary Theme: **Theme #4 — Self-Improvement** ✅
-### Secondary Theme: **Theme #2 — Long-Horizon Planning** ✅
-### Also Touches: **Theme #1 — Multi-Agent Interactions** + **Theme #3.1 — World Modeling**
+### Primary Theme: **Theme #2 — Long-Horizon Planning** ✅
+### Secondary Theme: **Theme #3.1 — World Modeling (Professional)** ✅
+### Also Touches: **Theme #4 — Self-Improvement** + **Theme #1 — Multi-Agent Interactions**
 
 ---
 
@@ -17,18 +17,18 @@ Author: Harshit Makraria · GitHub: [Harshit-Makraria/meta_scaler](https://githu
 
 | Theme | What it requires | How The Pivot delivers | Where in code |
 |---|---|---|---|
+| **T2 Long-Horizon Planning** | 60+ step reasoning with sparse/delayed rewards | 60-month episode; market phase hidden throughout; pivot timing reward only fires at the right window (steps 39–46 for b2c_saas); agent must plan across the full horizon. *"Strategic resource management worlds"* is a listed example. | `server/pivot_environment.py`, `server/reward.py` |
+| **T2 Long-Horizon Planning** | State tracking beyond context memory | Multi-turn memory encoder shows last 3 steps as assistant turns in the prompt; agent must reason about trajectory, not just current step | `server/prompt_encoder.py` `encode_to_messages()` |
+| **T3.1 World Modeling** | Partially observable world with causal feedback | Market phase NEVER revealed to agent; NPS/churn signals are noisy (RESEARCH reduces noise level); every action has real causal consequences on runway/revenue/morale. *"Economic simulations with feedback"* is a listed example. | `server/market.py`, `server/signals.py` |
 | **T4 Self-Improvement** | Agents learn to drive own capability growth through adaptive curricula or self-play | GRPO trains agent from its own episode history; AdaptiveCurriculum auto-escalates difficulty when performance improves; KL penalty prevents capability regression | `training/train_colab.ipynb`, `training/curriculum.py` |
 | **T4 Self-Improvement** | Recursive skill amplification | Agent at Tier 1 reuses skills at Tier 5 (20% replay); each tier is strictly harder; the agent's own reward decides when to unlock the next | `training/curriculum.py` L44–55 |
-| **T2 Long-Horizon Planning** | 60+ step reasoning with sparse/delayed rewards | 60-month episode; market phase hidden throughout; pivot timing reward only fires at the right window (steps 39–46 for b2c_saas); agent must plan across the full horizon | `server/pivot_environment.py`, `server/reward.py` |
-| **T2 Long-Horizon Planning** | State tracking beyond context memory | Multi-turn memory encoder shows last 3 steps as assistant turns in the prompt; agent must reason about trajectory, not just current step | `server/prompt_encoder.py` `encode_to_messages()` |
-| **T1 Multi-Agent** | Cooperation, competition, negotiation | Three independent NPC agents: CompetitorAgent (exploits your weaknesses), InvestorAgent (3 funding rounds with shifting requirements), FounderAgent (Ghost Protocol — advice degrades under pressure) | `server/competitor.py`, `server/investor.py`, `server/founder.py` |
-| **T3.1 World Modeling** | Partially observable world with causal feedback | Market phase NEVER revealed to agent; NPS/churn signals are noisy (RESEARCH reduces noise level); every action has real causal consequences on runway/revenue/morale | `server/market.py`, `server/signals.py` |
+| **T1 Multi-Agent** | Cooperation, competition, negotiation | Three rule-based NPC agents: CompetitorAgent (exploits your weaknesses), InvestorAgent (3 funding rounds with shifting requirements), FounderAgent (Ghost Protocol — advice degrades under pressure). Note: only one agent (the LLM) is trained. | `server/competitor.py`, `server/investor.py`, `server/founder.py` |
 
 ---
 
-### Theme #4 — Self-Improvement (Primary, ~70% of design)
+### Theme #2 — Long-Horizon Planning (Primary, ~50% of design)
 
-The hackathon's T4 track is titled **"Self-Improvement"** — building systems where an AI agent improves its own capabilities through experience. The Pivot hits this theme at three distinct levels:
+The hackathon's T2 track focuses on **"(Super) Long-Horizon Planning & Instruction Following"** — environments requiring deep, multi-step reasoning with sparse or delayed rewards. The Pivot hits this theme at every level of its design:
 
 ---
 
@@ -124,7 +124,7 @@ The Pivot trains an LLM to do all four — and the trained policy can then act a
 
 ---
 
-### Theme #2 — Long-Horizon Planning & Instruction Following (Secondary, ~20% of design)
+### Theme #3.1 — World Modeling / Professional Tasks (Secondary, ~25% of design)
 
 **What the theme requires:** environments that force multi-step reasoning with sparse or delayed rewards — pushing agents to decompose goals, track state across extended trajectories, and recover from early mistakes.
 
@@ -143,7 +143,7 @@ The Pivot trains an LLM to do all four — and the trained policy can then act a
 
 ---
 
-### Theme #1 — Multi-Agent Interactions (Partial, ~10% of design)
+### Theme #4 — Self-Improvement (Supporting, ~15% of design)
 
 **What the theme requires:** cooperation, competition, negotiation, and coalition formation — environments where agents model the beliefs and incentives of others.
 
@@ -164,7 +164,7 @@ The Pivot has **four agents** operating simultaneously. Only the Founder/CEO (th
 
 ---
 
-### Theme #3.1 — World Modeling / Professional Tasks (Partial)
+### Theme #1 — Multi-Agent Interactions (Touches, ~10% of design)
 
 The environment models a realistic startup world with genuine causal structure:
 
@@ -1007,7 +1007,7 @@ These are features that would make The Pivot genuinely useful for real founders 
 
 ## 15. The Theme Execution — Summary
 
-The Pivot addresses T4 (Self-Improvement) at every level of the system:
+The Pivot primarily addresses T2 (Long-Horizon Planning) with strong support from T3.1 (World Modeling) and touches of T4 (Self-Improvement) and T1 (Multi-Agent):
 
 | Level | Mechanism | How it self-improves |
 |---|---|---|
