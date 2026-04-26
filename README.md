@@ -1,5 +1,5 @@
 ---
-title: The Pivot
+title: FounderOS — CoFounder Strategist
 emoji: 🔄
 colorFrom: blue
 colorTo: purple
